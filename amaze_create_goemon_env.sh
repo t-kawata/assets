@@ -208,7 +208,85 @@ line();
 function line() { echo LINE; }
 function message(\$msg) { echo \$msg."\n"; }
 EOF
-where
+
+cat <<EOF > /root/sh/restart_goemon.sh
+#!/bin/bash
+LINE="------------------------------------------------"
+SLACK_URL="https://hooks.slack.com/services/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"
+CHK_LIMIT=5
+ZERO=0
+ARG="\$1"
+DATE=\`date\`
+HARD="-hard"
+TEXT=""
+echo \${LINE}
+TEXT=\$TEXT"\\n"\${LINE}
+OLD_PID_STR=\`netstat -anp | grep LISTEN | grep asterisk | grep :8088 | awk '{print \$7}'\`
+if [ "\${OLD_PID_STR}" != "" ]; then
+  ACTIVE_CHANNELS_CNT=\`/usr/bin/asterisk -rx "core show channels" | grep "active channel" | awk '{print \$1}'\`
+else
+  ACTIVE_CHANNELS_CNT=0
+fi
+echo \${DATE}
+echo \${LINE}
+echo "Asterisk has \${ACTIVE_CHANNELS_CNT} active channels."
+TEXT=\$TEXT"\\n*\${DATE}*"
+TEXT=\$TEXT"\\n"\${LINE}
+TEXT=\$TEXT"\\n""Asterisk has \${ACTIVE_CHANNELS_CNT} active channels."
+if [ "\${ARG}" = "\${HARD}"  ]; then
+  echo ">> Forcibly restart Goemon with option '-hard'. <<"
+  TEXT=\$TEXT"\\n""[ Forcibly restart Goemon with option '-hard'. ]"
+fi
+if [ \${ACTIVE_CHANNELS_CNT} = 0 -o "\${ARG}" = "\${HARD}" ]; then
+  HOSTNAME=\`hostname\`
+  TEXT=\$TEXT"\\n \\\`Goemon is dead now (\${HOSTNAME}).\\\` "
+  TEXT=\$TEXT"\\n""\${HOSTNAME}"
+  echo "Restarting Goemon..."
+  /usr/bin/goemon install
+  systemctl restart goemon
+  sleep 2
+  CHK_NUM=\`netstat -anp | grep LISTEN | grep 4573 | grep java | wc -l\`
+  CHK_CNT=0
+  SUCCESS=false
+  if [ \${CHK_NUM} -gt \${ZERO} ]; then
+    CHK_GO=false
+    SUCCESS=true
+  else
+    CHK_GO=true
+  fi
+  while [ \${CHK_GO} ]
+  do
+    CHK_CNT=\$CHK_CNT+1
+    sleep 1
+    CHK_NUM=\`netstat -anp | grep LISTEN | grep 4573 | grep java | wc -l\`
+    if [ \${CHK_NUM} -gt \${ZERO} ]; then
+      CHK_GO=false
+      SUCCESS=true
+      break
+    fi
+    echo \${CHK_CNT}
+    if [ \${CHK_CNT} -ge \${CHK_LIMIT} ]; then
+      CHK_GO=false
+      break
+    fi
+  done
+  if [ \${SUCCESS} ]; then
+    MSG="Succeeded to restart goemon !!"
+  else
+    MSG="Failed to restart goemon..."
+  fi
+  echo \${MSG}
+  echo \${LINE}
+  TEXT=\$TEXT"\\n"\${MSG}
+  TEXT=\$TEXT"\\n"\${LINE}
+  /usr/bin/curl -X POST "\${SLACK_URL}" -d "payload={\\"username\\": \\"pbx-alert@\${HOSTNAME}\\",\\"text\\": \\"\${TEXT}\\",\\"icon_emoji\\": \\":exclamation:\\"}"
+else
+  echo "Sorry! Try again when Asterisk has no active channels!"
+  echo \${LINE}
+  TEXT=\$TEXT"\\n"\${LINE}
+fi
+exit 0
+EOF
 chmod 500 /root/sh/restart_goemon.sh
 ln -s /root/sh/restart_goemon.sh /usr/bin/restart_goemon
 
