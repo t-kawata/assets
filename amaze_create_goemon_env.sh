@@ -155,7 +155,7 @@ if (!empty(\$argv[1])) {
 
 define("GOEMON_HOME", "/usr/local/goemon");
 define("GOEMON_JAVA", "/usr/bin/java -Xms4096M -Xmx8192M -Dcom.sun.management.jmxremote -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote.port=9010 -Dcom.sun.management.jmxremote.rmi.port=9010 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false");
-define("GOEMON_BIN", GOEMON_HOME."/comdesk_bl.jar");
+define("GOEMON_BIN", GOEMON_HOME."/amaze_bl.jar");
 define("GOEMON_LOG_DIR", GOEMON_HOME."/log/");
 define("GOEMON_LOG", GOEMON_LOG_DIR."system.log");
 define("GOEMON_PID", GOEMON_HOME."/pid/goemon.pid");
