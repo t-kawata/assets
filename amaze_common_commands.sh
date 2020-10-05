@@ -17,7 +17,7 @@ ln -s /root/sh/sip_ws_cnt.sh /usr/bin/sip_ws_cnt
 cat <<EOF > /root/sh/restart_asterisk.sh
 #!/bin/bash
 LINE="------------------------------------------------"
-SLACK_URL="https://hooks.slack.com/services/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"
+SLACK_URL="https://hooks.slack.com/services/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"
 ARG="\$1"
 DATE=\`date\`
 HARD="-hard"
