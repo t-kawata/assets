@@ -38,8 +38,8 @@ EOF
 cat <<EOF > /usr/local/goemon/bin/install.php
 #!/usr/local/php/bin/php
 <?php
-define("JAR_NAME", "comdesk_bl.jar");
-define("LIB_DIR_NAME", "comdesk_bl_lib");
+define("JAR_NAME", "amaze_bl.jar");
+define("LIB_DIR_NAME", "amaze_bl_lib");
 define("GOEMON_DIR", "/usr/local/goemon/");
 define("HOME_DIR", "/home/asterisk/");
 define("FROM_JAR_PATH", HOME_DIR.JAR_NAME);
