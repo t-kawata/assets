@@ -152,7 +152,7 @@ ln -s /root/sh/active_channel.sh /usr/bin/active_channel
 cat <<EOF > /root/sh/memories.sh
 #!/bin/bash
 PS=\`ps -aux\`
-TOMCAT_PID=\`echo "\${PS}" | grep /usr/local/tomcat10 | grep -v grep | awk '{print \$2}'\`
+TOMCAT_PID=\`echo "\${PS}" | grep /usr/local/tomcat8 | grep -v grep | awk '{print \$2}'\`
 GOEMON_PID=\`echo "\${PS}" | grep /usr/local/goemon/amaze_bl.jar | grep -v grep | grep -v sudo | awk '{print \$2}'\`
 ASTERISK_PID=\`echo "\${PS}" | grep /usr/local/asterisk/sbin/asterisk | grep -v grep | awk '{print \$2}'\`
 TURNSERVER_PID=\`echo "\${PS}" | grep /usr/local/bin/turnserver | grep senoway:yu51043chie3 | awk '{print \$2}'\`
@@ -192,7 +192,7 @@ ln -s /root/sh/memories.sh /usr/bin/memories
 cat <<EOF > /root/sh/cpus.sh
 #!/bin/bash
 PS=\`ps -aux\`
-TOMCAT_PID=\`echo "\${PS}" | grep /usr/local/tomcat10 | grep -v grep | awk '{print \$2}'\`
+TOMCAT_PID=\`echo "\${PS}" | grep /usr/local/tomcat8 | grep -v grep | awk '{print \$2}'\`
 GOEMON_PID=\`echo "\${PS}" | grep /usr/local/goemon/amaze_bl.jar | grep -v grep | grep -v sudo | awk '{print \$2}'\`
 ASTERISK_PID=\`echo "\${PS}" | grep /usr/local/asterisk/sbin/asterisk | grep -v grep | awk '{print \$2}'\`
 TURNSERVER_PID=\`echo "\${PS}" | grep /usr/local/bin/turnserver | grep senoway:yu51043chie3 | awk '{print \$2}'\`
