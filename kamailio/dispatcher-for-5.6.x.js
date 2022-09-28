@@ -15,7 +15,12 @@ const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, 
  */
 const ksrRouteReqInit = function () {
   if (!KSR.maxfwd.process_maxfwd(10)) { slSendReply(483, 'Too Many Hops'); return false; }
-  if (!KSR.sanity.sanity_check(1511, 7)) { notice('Malformed SIP message from ' + srcIp + ':' + srcPort); return false; }
+  if (!KSR.sanity.sanity_check(1511, 7)) {
+    const srcIp = getPv('si')
+    const srcPort = getPv('sp')
+    notice('Malformed SIP message from ' + srcIp + ':' + srcPort)
+    return false
+  }
   return true
 }
 
