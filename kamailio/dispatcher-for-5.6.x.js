@@ -7,7 +7,7 @@ const FLT_ACCFAILED = 3
  */
 const info = function (msg) { KSR.info(msg) }
 const notice = function (msg) { KSR.notice(msg) }
-const getPv = function (name) { return KSR.pv.get(`$${name}`) }
+const getPv = function (name) { return KSR.pv.get('$' + name) }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 
 /**
