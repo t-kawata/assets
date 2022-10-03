@@ -1,3 +1,6 @@
+/**
+ * Consts
+ */
 const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
