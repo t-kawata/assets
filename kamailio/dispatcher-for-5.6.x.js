@@ -99,6 +99,7 @@ const routeDispatch = function () {
 }
 const routeSelectDst = function () {
   if (dsSelectDst(1, 4) < 0) { sendReply(404, 'No destination'); return false; }
+  return true
 }
 const routeRelay = function () {
   if (tRelay() < 0) slReplyError()
