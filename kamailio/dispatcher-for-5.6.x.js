@@ -10,6 +10,7 @@ const notice = function (msg) { KSR.notice(msg) }
 const getPv = function (name) { return KSR.pv.get('$' + name) }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const tCheckTrans = function () { return KSR.tm.t_check_trans() }
+const tPreCheckTrans = function () { return KSR.tmx.t_precheck_trans() }
 const tRelay = function () { return KSR.tm.t_relay() }
 const slReplyError = function () { return KSR.sl.sl_reply_error() }
 
@@ -31,6 +32,12 @@ const routeCancel = function () {
   if (tCheckTrans() > 0) return routeRelay()
   return true
 }
+const routeAck = function () {
+  if (!KSR.is_ACK()) return true
+  if (tPreCheckTrans() > 0) { tCheckTrans(); return false; }
+  if (tCheckTrans() === 0) return false
+  return true
+}
 const routeRelay = function () {
   if (KSR.tm.t_relay() < 0) slReplyError()
   return false
@@ -45,4 +52,5 @@ const routeRelay = function () {
 function ksr_request_route() {
   if (!routeReqInit()) return
   if (!routeCancel()) return
+  if (!routeAck()) return
 }
