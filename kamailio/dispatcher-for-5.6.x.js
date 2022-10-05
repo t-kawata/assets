@@ -88,12 +88,15 @@ const routePresence = function () {
 const routeRegister = function () {
   if (!KSR.is_REGISTER()) return true
   if (save('location') < 0) slReplyError()
-  if (!routeSelectDst()) return false
-  const reqUri = getPv('ru')
-  const dstUri = getPv('du')
-  info('Request-URI: ' + reqUri)
-  info('Destination-URI: ' + dstUri)
+  const contact = getPv('ct')
+  info('CONTACT: ' + contact)
   return false
+  // if (!routeSelectDst()) return false
+  // const reqUri = getPv('ru')
+  // const dstUri = getPv('du')
+  // info('Request-URI: ' + reqUri)
+  // info('Destination-URI: ' + dstUri)
+  // return false
 }
 const routeDispatch = function () {
   if (!routeSelectDst()) return false
