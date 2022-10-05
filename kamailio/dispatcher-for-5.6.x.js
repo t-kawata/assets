@@ -4,11 +4,12 @@
 const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
+const JSDT_DEBUG = true
 
 /**
  * Utils
  */
-const info = function (msg) { KSR.info(msg) }
+const info = function (msg) { if (JSDT_DEBUG) KSR.info(msg) }
 const notice = function (msg) { KSR.notice(msg) }
 const getPv = function (name) { return KSR.pv.get('$' + name) }
 const setFlag = function (flg) { return KSR.setflag(flg) }
@@ -85,20 +86,32 @@ const routePresence = function () {
   slSendReply(404, 'Not here')
   return false
 }
-const routeRegister = function () {
+const routeRegisterEntry = function () {
   if (!KSR.is_REGISTER()) return true
   const contact = getPv('ct')
-  info('CONTACT: ' + contact)
-  if (!contact.match(/expires=0/)) info('This is REGISTER!')
-  else info('This is UNREGISTER')
-  if (save('location') < 0) slReplyError()
-  return false
+  if (!contact) return false
+  if (!contact.match(/expires=0/)) return routeRegister(contact)
+  else return routeUnregister(contact)
   // if (!routeSelectDst()) return false
   // const reqUri = getPv('ru')
   // const dstUri = getPv('du')
   // info('Request-URI: ' + reqUri)
   // info('Destination-URI: ' + dstUri)
   // return false
+}
+const routeRegister = function (contact) {
+  info('Try to register a contact: ' + contact)
+  if (save('location') < 0) slReplyError()
+  info('Registered a contact: ' + contact)
+
+  return false
+}
+const routeUnregister = function (contact) {
+  info('Try to unregister a contact: ' + contact)
+  if (save('location') < 0) slReplyError()
+  info('Unregistered a contact: ' + contact)
+  
+  return false
 }
 const routeDispatch = function () {
   if (!routeSelectDst()) return false
@@ -140,7 +153,7 @@ function ksr_request_route() {
 
   if (!routeInvite()) return
   if (!routePresence()) return
-  if (!routeRegister()) return
+  if (!routeRegisterEntry()) return
 
   const usernameInReqURI = getPv('rU')
   if (usernameInReqURI === null) { slSendReply(484, 'Address Incomplete'); return; }
