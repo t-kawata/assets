@@ -142,7 +142,10 @@ const failureRouteRtfDispatch = function () {
 /********************************
  * Event Handlers bgn
  ********************************/
-
+const onRegistrarEvent = function (eventName) {
+  info('Event Name: ' + eventName)
+  info(KSR.pv.getw('$ulc(exp=>aor)'))
+}
 /********************************
  * Event Handlers end
  ********************************/
