@@ -87,9 +87,11 @@ const routePresence = function () {
 }
 const routeRegister = function () {
   if (!KSR.is_REGISTER()) return true
-  if (save('location') < 0) slReplyError()
   const contact = getPv('ct')
   info('CONTACT: ' + contact)
+  if (!contact.match(/expires=0/)) info('This is REGISTER!')
+  else info('This is UNREGISTER')
+  if (save('location') < 0) slReplyError()
   return false
   // if (!routeSelectDst()) return false
   // const reqUri = getPv('ru')
