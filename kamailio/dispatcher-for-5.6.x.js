@@ -110,7 +110,7 @@ const routeUnregister = function (contact) {
   info('Try to unregister a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Unregistered a contact: ' + contact)
-  
+
   return false
 }
 const routeDispatch = function () {
@@ -139,10 +139,18 @@ const failureRouteRtfDispatch = function () {
  * Branch Routes end
  ********************************/
 
+/********************************
+ * Event Handlers bgn
+ ********************************/
+
+/********************************
+ * Event Handlers end
+ ********************************/
+
 /**
  * Request Entry Point
  */
-function ksr_request_route() {
+const ksr_request_route = function () {
   if (!routeReqInit()) return
   if (!routeCancel()) return
   if (!routeAck()) return
