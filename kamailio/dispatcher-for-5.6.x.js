@@ -48,10 +48,7 @@ const routeReqInit = function () {
   return true
 }
 const routeKDMQ = function () {
-  if (KSR.is_KDMQ()) {
-    KSR.dmq.handle_message()
-    return false
-  }
+  if (KSR.is_KDMQ()) { KSR.dmq.handle_message(); return false; }
   return true
 }
 const routeCancel = function () {
