@@ -47,6 +47,13 @@ const routeReqInit = function () {
   }
   return true
 }
+const routeKDMQ = function () {
+  if (KSR.is_KDMQ()) {
+    KSR.dmq.handle_message()
+    return false
+  }
+  return true
+}
 const routeCancel = function () {
   if (!KSR.is_CANCEL()) return true
   if (tCheckTrans() > 0) return routeRelay()
@@ -155,6 +162,7 @@ const onRegistrarEvent = function (eventName) {
  */
 const ksr_request_route = function () {
   if (!routeReqInit()) return
+  if (!routeKDMQ()) return
   if (!routeCancel()) return
   if (!routeAck()) return
   if (!routeWithinDlg()) return
