@@ -33,6 +33,14 @@ const tIsCanceled = function () { return KSR.tm.t_is_canceled() }
 const tCheckStatus = function (replyCode) { return KSR.tm.t_check_status(replyCode) }
 const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
+const getUsernameFromContact = function (contact) {
+  if (!contact) return ''
+  const ex1 = contact.split('@')
+  if (ex1.length < 2) return ''
+  const ex2 = ex1.split(':')
+  if (ex2.length < 2) return ''
+  return ex2[1]
+}
 
 /********************************
  * Branch Routes bgn
@@ -104,8 +112,8 @@ const routeRegisterEntry = function () {
   // return false
 }
 const routeRegister = function (contact) {
-  const reqUriUsername = getPv('rU')
-  info('Registering R-URI username: ' + reqUriUsername)
+  const username = getUsernameFromContact(contact)
+  info('Registering username: ' + username)
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
