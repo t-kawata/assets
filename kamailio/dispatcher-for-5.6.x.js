@@ -39,11 +39,11 @@ const execRPC = function (method, paramsArr) {
   if (rtn < 0) return null
   const code = getPv('jsonrpl(code)')
   const body = getPv('jsonrpl(body)')
-  if (code === 200) {
-    error(JSON.stringify({
-      code,
-      body: JSON.stringify(JSON.parse(body))
-    }));
+  if (code !== 200) {
+    error('ERROR Code: ' + code)
+    error('ERROR Body: ' + JSON.stringify(JSON.parse(body)))
+    error('Failed Method: ' + method)
+    error('Failed Method Params: ' + JSON.stringify(paramsArr))
     return null;
   }
   info(code)
