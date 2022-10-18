@@ -33,11 +33,21 @@ const tIsCanceled = function () { return KSR.tm.t_is_canceled() }
 const tCheckStatus = function (replyCode) { return KSR.tm.t_check_status(replyCode) }
 const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
+const execRPC = function (method, paramsArr) {
+  const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method: method, params: paramsArr }))
+  if (rtn < 0) return null
+  const code = getPv('jsonrpl(code)')
+  const text = getPv('jsonrpl(text)')
+  const body = getPv('jsonrpl(body)')
+  info(code)
+  info(text)
+  info(text)
+}
 const getUsernameFromContact = function (contact) {
   if (!contact) return ''
   const ex1 = contact.split('@')
   if (ex1.length < 2) return ''
-  const ex2 = ex1.split(':')
+  const ex2 = ex1[0].split(':')
   if (ex2.length < 2) return ''
   return ex2[1]
 }
@@ -117,7 +127,7 @@ const routeRegister = function (contact) {
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
-
+  execRPC('ul.lookup', ['location', '101@'])
   return false
 }
 const routeUnregister = function (contact) {
