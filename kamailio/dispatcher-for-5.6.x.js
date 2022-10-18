@@ -35,14 +35,14 @@ const tCheckStatus = function (replyCode) { return KSR.tm.t_check_status(replyCo
 const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const execRPC = function (method, paramsArr) {
-  const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method: method, params: paramsArr }))
+  const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
   if (rtn < 0) return null
   const code = getPv('jsonrpl(code)')
   const body = getPv('jsonrpl(body)')
   if (code === 200) {
-    error("\n" + JSON.stringify({
+    error(JSON.stringify({
       code,
-      body
+      body: JSON.stringify(JSON.parse(body))
     }));
     return null;
   }
