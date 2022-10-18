@@ -42,12 +42,11 @@ const execRPC = function (method, paramsArr) {
   if (code !== 200) {
     error('ERROR Code: ' + code)
     error('ERROR Body: ' + JSON.stringify(JSON.parse(body)))
-    error('Failed Method: ' + method)
-    error('Failed Method Params: ' + JSON.stringify(paramsArr))
+    error('ERROR Failed Method: ' + method)
+    error('ERROR Failed Method Params: ' + JSON.stringify(paramsArr))
     return null;
   }
-  info(code)
-  info(body)
+  return JSON.parse(body)
 }
 const getUsernameFromContact = function (contact) {
   if (!contact) return ''
@@ -56,6 +55,9 @@ const getUsernameFromContact = function (contact) {
   const ex2 = ex1[0].split(':')
   if (ex2.length < 2) return ''
   return ex2[1]
+}
+const getContactsByAor = function (aorName) {
+  return execRPC('ul.lookup', ['location', aorName + '@'])
 }
 
 /********************************
@@ -133,7 +135,8 @@ const routeRegister = function (contact) {
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
-  execRPC('ul.lookup', ['location', '101@'])
+  const contacts = getContactsByAor(username)
+  info(JSON.stringify(contacts))
   return false
 }
 const routeUnregister = function (contact) {
