@@ -11,6 +11,7 @@ const JSDT_DEBUG = true
  */
 const info = function (msg) { if (JSDT_DEBUG) KSR.info(msg) }
 const notice = function (msg) { KSR.notice(msg) }
+const error = function (msg) { KSR.err(msg) }
 const getPv = function (name) { return KSR.pv.get('$' + name) }
 const setFlag = function (flg) { return KSR.setflag(flg) }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
@@ -37,11 +38,16 @@ const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method: method, params: paramsArr }))
   if (rtn < 0) return null
   const code = getPv('jsonrpl(code)')
-  const text = getPv('jsonrpl(text)')
   const body = getPv('jsonrpl(body)')
+  if (code === 200) {
+    error("\n" + JSON.stringify({
+      code,
+      body
+    }));
+    return null;
+  }
   info(code)
-  info(text)
-  info(text)
+  info(body)
 }
 const getUsernameFromContact = function (contact) {
   if (!contact) return ''
