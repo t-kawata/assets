@@ -104,6 +104,8 @@ const routeRegisterEntry = function () {
   // return false
 }
 const routeRegister = function (contact) {
+  const reqUriUsername = getPv('rU')
+  info('Registering R-URI username: ' + reqUriUsername)
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
