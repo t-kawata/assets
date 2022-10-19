@@ -22,12 +22,21 @@ const setToHtable = function (table, key, value) {
   }
   return rtn
 }
-const setToRegmap = function (key, value) { return setToHtable('regmap', key, value) }
+const setToRegmap = function (key, value) {
+  info('Set a regmap record(' + key + ': ' + value + ')')
+  return setToHtable('regmap', key, value)
+}
 const getPv = function (name) { return KSR.pv.get('$' + name) }
 const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
-const getFromRegmap = function (key) { return getFromHtable('regmap', key) }
+const getFromRegmap = function (key) {
+  info('Get a regmap record by key(' + key + ')')
+  return getFromHtable('regmap', key)
+}
 const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
-const delFromRegmap = function (key) { return delFromHtable('regmap', key) }
+const delFromRegmap = function (key) {
+  info('Delete a regmap record by key(' + key + ')')
+  return delFromHtable('regmap', key)
+}
 const setFlag = function (flg) { return KSR.setflag(flg) }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const sendReply = function (code, reason) { return KSR.sl.send_reply(code, reason) }
@@ -40,6 +49,7 @@ const isMyselfFuri = function () { return KSR.is_myself_furi() }
 const removeHf = function (headerName) { return KSR.textops.remove_hf(headerName) }
 const recordRoute = function () { return KSR.rr.record_route() }
 const save = function (table, flags) { return KSR.registrar.save(table, flags) }
+const unregister = function (table, uri) { return KSR.registrar.unregister(table, uri) }
 const dsSelectDst = function (set, alg) { return KSR.dispatcher.ds_select_dst(set, alg) }
 const dsNextDst = function () { return KSR.dispatcher.ds_next_dst() }
 const tRelay = function () { return KSR.tm.t_relay() }
@@ -86,10 +96,11 @@ const getContactsByAor = function (aorName) {
 const getRemovingTargetContact = function (contact) {
   const username = getUsernameFromContact(contact)
   const contacts = getContactsByAor(username)
-  if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); }
-  if (!contacts) return {}
+  if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); return {}; }
   const length = contacts.length
+  info(length + ' contacts were found for AOR('+ username + ')')
   if (length === 0 || length <= MAX_CONTACTS) return {}
+  info('This REGISTER req is over MAX_CONTACTS(' + MAX_CONTACTS + ')')
   var minLastModifiedTimeStamp = 0
   var removingTargetContact = {}
   contacts.forEach(function (c) {
@@ -99,16 +110,40 @@ const getRemovingTargetContact = function (contact) {
   })
   return removingTargetContact
 }
-const rotateRegmap = function (contact) {
+const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
   const addressOfRemovingTargetContact = getRemovingTargetContact(contact).Address
   if (isUndefined(addressOfRemovingTargetContact)) return
+  info('Try to delete contact(' + addressOfRemovingTargetContact + ')')
+  if (unregister('location', addressOfRemovingTargetContact) === 0) {
+    info('Succeeded to unregister a contact(' + addressOfRemovingTargetContact + ')')
+  } else {
+    info('Failed to unregister a contact(' + addressOfRemovingTargetContact + ')')
+  }
   const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
   const dstUriFromRegmapForRemoving = getFromRegmap(sipUriOfRemovingTargetContact)
   if (isNull(dstUriFromRegmapForRemoving)) return
   // 5. request UNREGISTER to this dstUri
   //    -> Operation
-  // 6. delete this map record from regmap
   delFromRegmap(sipUriOfRemovingTargetContact)
+}
+const getCorrectDstUriWithSettingRegmapRecord = function (contact) {
+  info('Try to search a saved Dst-URI in regmap for this contact(' + contact + ')')
+  const sipUriOfContact = getSipBaseUrlFromStr(contact)
+  const dstUriFromRegmap = getFromRegmap(sipUriOfContact)
+  var dstUri = ''
+  if (!isNull(dstUriFromRegmap)) {
+    info('A saved Dst-URI(' + dstUriFromRegmap + ') was found in regmap for a contact sip uri(' + sipUriOfContact + ').')
+    info('Use [' + dstUriFromRegmap + '] as Dst-URI to dispatch now.')
+    dstUri = dstUriFromRegmap
+  } else {
+    info('No saved Dst-URI was found in regmap for a contact sip uri(' + sipUriOfContact + ').')
+    info('Select a Dst-URI with auto-select-system of dispatcher.')
+    if (!routeSelectDst()) return false
+    dstUri = getPv('du')
+    info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
+    setToRegmap(sipUriOfContact, dstUri)
+  }
+  return dstUri
 }
 
 /********************************
@@ -181,24 +216,10 @@ const routeRegisterEntry = function () {
   // return false
 }
 const routeRegister = function (contact) {
-  rotateRegmap(contact)
-  // 7. contactのSIP-URIに該当するregmap recordを探す
-  const sipUriOfContact = getSipBaseUrlFromStr(contact)
-  const dstUriFromRegmap = getFromRegmap(sipUriOfContact)
-  info('------------------------------------------')
-  info('sipUriOfContact: ' + sipUriOfContact)
-  info('dstUriFromRegmap: ' + dstUriFromRegmap)
-  info('------------------------------------------')
-  var dstUri = ''
-  if (!isNull(dstUriFromRegmap)) {
-    // 8. mapがあれば取得したdispatch先をdstUriとして保管
-    dstUri = dstUriFromRegmap
-  } else {
-    // 9. mapがなければmapを作成
-    if (!routeSelectDst()) return false
-    dstUri = getPv('du')
-    setToRegmap(sipUriOfContact, dstUri)
-  }
+  info('Got REGISTER req with contact(' + contact + ')')
+  removeNotFreshOneContactWhenOverMaxContact(contact)
+  const dstUri = getCorrectDstUriWithSettingRegmapRecord(contact)
+  info('Now we decided to use [' + dstUri + '] as Dst-URI.')
   // 10. saveしてdispatch先（dstUri）へrequest
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
