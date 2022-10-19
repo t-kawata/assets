@@ -4,6 +4,7 @@
 const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
+const MAX_CONTACTS = 5
 const JSDT_DEBUG = true
 
 /**
@@ -65,6 +66,19 @@ const getContactsByAor = function (aorName) {
   const rtn = []
   contacts.forEach(function (c) { rtn.push(c.Contact) })
   return rtn
+}
+const getRemoveTargetContact = function (contacts) {
+  const length = contacts.length
+  if (!contacts || length === 0) return {}
+  if (length < MAX_CONTACTS) return {}
+  let minLastModifiedTimeStamp = 0
+  let removeTargetContact = {}
+  contacts.forEach(function (c) {
+    if (minLastModifiedTimeStamp !== 0 && c['Last-Modified'] >= minLastModifiedTimeStamp) return
+    minLastModifiedTimeStamp = c['Last-Modified']
+    removeTargetContact = c
+  })
+  return removeTargetContact
 }
 
 /********************************
@@ -138,16 +152,16 @@ const routeRegisterEntry = function () {
 }
 const routeRegister = function (contact) {
   const username = getUsernameFromContact(contact)
+  const contacts = getContactsByAor(username)
+  if (isNull(contacts)) { error('Failed to get contacts for a AOR(' + username + ')'); return false; }
+  const removeTargetContact = getRemoveTargetContact(contacts)
+  info(JSON.stringify(removeTargetContact))
+  // info(JSON.stringify(contacts))
+
   info('Registering username: ' + username)
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
-  const contacts = getContactsByAor(username)
-  if (isNull(contacts)) {
-    error('Failed to get contacts for a AOR(' + username + ')')
-    return false
-  }
-  info(JSON.stringify(contacts))
   return false
 }
 const routeUnregister = function (contact) {
