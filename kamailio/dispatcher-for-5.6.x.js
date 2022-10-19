@@ -83,7 +83,10 @@ const getContactsByAor = function (aorName) {
   contacts.forEach(function (c) { rtn.push(c.Contact) })
   return rtn
 }
-const getRemovingTargetContact = function (contacts) {
+const getRemovingTargetContact = function (contact) {
+  const username = getUsernameFromContact(contact)
+  const contacts = getContactsByAor(username)
+  if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); }
   if (!contacts) return {}
   const length = contacts.length
   if (length === 0 || length < MAX_CONTACTS) return {}
@@ -95,6 +98,17 @@ const getRemovingTargetContact = function (contacts) {
     removingTargetContact = c
   })
   return removingTargetContact
+}
+const rotateRegmap = function (contact) {
+  const addressOfRemovingTargetContact = getRemovingTargetContact(contact).Address
+  if (isUndefined(addressOfRemovingTargetContact)) return
+  const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
+  const dstUriFromRegmapForRemoving = getFromRegmap(sipUriOfRemovingTargetContact)
+  if (isNull(dstUriFromRegmapForRemoving)) return
+  // 5. request UNREGISTER to this dstUri
+  //    -> Operation
+  // 6. delete this map record from regmap
+  delFromRegmap(sipUriOfRemovingTargetContact)
 }
 
 /********************************
@@ -167,25 +181,7 @@ const routeRegisterEntry = function () {
   // return false
 }
 const routeRegister = function (contact) {
-  const username = getUsernameFromContact(contact)
-  const contacts = getContactsByAor(username)
-  if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); }
-  const removingTargetContact = getRemovingTargetContact(contacts)
-  const addressOfRemovingTargetContact = removingTargetContact.Address
-  if (!isUndefined(addressOfRemovingTargetContact)) { // when removing target contact was found
-    const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
-    const dstUriFromRegmapForRemoving = getFromRegmap(sipUriOfRemovingTargetContact)
-    if (!isNull(dstUriFromRegmapForRemoving)) { // when dstUri was found in regmap
-      // 5. request UNREGISTER to this dstUri
-      //    -> Operation
-      // 6. delete this map record from regmap
-      delFromRegmap(sipUriOfRemovingTargetContact)
-    }
-    info('------------------------------------------')
-    info('sipUriOfRemovingTargetContact: ' + sipUriOfRemovingTargetContact)
-    info('dstUriFromRegmapForRemoving: ' + dstUriFromRegmapForRemoving)
-    info('------------------------------------------')
-  }
+  rotateRegmap(contact)
   // 7. contactのSIP-URIに該当するregmap recordを探す
   const sipUriOfContact = getSipBaseUrlFromStr(contact)
   const dstUriFromRegmap = getFromRegmap(sipUriOfContact)
@@ -195,10 +191,10 @@ const routeRegister = function (contact) {
   info('------------------------------------------')
   var dstUri = ''
   if (!isNull(dstUriFromRegmap)) {
-    // 8-1. mapがあれば取得したdispatch先をdstUriとして保管
-    // 8-2. dstUri = dstUriFromRegmap
+    // 8. mapがあれば取得したdispatch先をdstUriとして保管
+    dstUri = dstUriFromRegmap
   } else {
-    // 9-1. mapがなければmapを作成
+    // 9. mapがなければmapを作成
     if (!routeSelectDst()) return false
     dstUri = getPv('du')
     setToRegmap(sipUriOfContact, dstUri)
