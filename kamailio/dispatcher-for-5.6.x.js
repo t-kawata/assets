@@ -42,10 +42,10 @@ const execRPC = function (method, paramsArr) {
   const code = getPv('jsonrpl(code)')
   const body = getPv('jsonrpl(body)')
   if (code !== 200) {
-    error('ERROR Code: ' + code)
-    error('ERROR Body: ' + JSON.stringify(JSON.parse(body)))
-    error('ERROR Failed Method: ' + method)
-    error('ERROR Failed Method Params: ' + JSON.stringify(paramsArr))
+    info('ERROR Code: ' + code)
+    info('ERROR Body: ' + JSON.stringify(JSON.parse(body)))
+    info('ERROR Failed Method: ' + method)
+    info('ERROR Failed Method Params: ' + JSON.stringify(paramsArr))
     return null;
   }
   return JSON.parse(body)
@@ -71,8 +71,8 @@ const getRemoveTargetContact = function (contacts) {
   const length = contacts.length
   if (!contacts || length === 0) return {}
   if (length < MAX_CONTACTS) return {}
-  let minLastModifiedTimeStamp = 0
-  let removeTargetContact = {}
+  var minLastModifiedTimeStamp = 0
+  var removeTargetContact = {}
   contacts.forEach(function (c) {
     if (minLastModifiedTimeStamp !== 0 && c['Last-Modified'] >= minLastModifiedTimeStamp) return
     minLastModifiedTimeStamp = c['Last-Modified']
@@ -153,7 +153,7 @@ const routeRegisterEntry = function () {
 const routeRegister = function (contact) {
   const username = getUsernameFromContact(contact)
   const contacts = getContactsByAor(username)
-  if (isNull(contacts)) { error('Failed to get contacts for a AOR(' + username + ')'); return false; }
+  if (isNull(contacts)) { error('No contacts for a AOR(' + username + ')'); }
   const removeTargetContact = getRemoveTargetContact(contacts)
   info(JSON.stringify(removeTargetContact))
   // info(JSON.stringify(contacts))
