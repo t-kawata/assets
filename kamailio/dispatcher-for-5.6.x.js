@@ -62,6 +62,7 @@ const execRPC = function (method, paramsArr) {
   }
   return JSON.parse(body)
 }
+const getSipBaseUrlFromStr = function (str) { return String(str).match(/sip:.+@.+?:.[0-9]+/) || '' }
 const getUsernameFromContact = function (contact) {
   if (!contact) return ''
   const ex1 = contact.split('@')
@@ -167,15 +168,14 @@ const routeRegister = function (contact) {
   const contacts = getContactsByAor(username)
   if (isNull(contacts)) { error('No contacts for a AOR(' + username + ')'); }
   const removingTargetContact = getRemovingTargetContact(contacts)
-  info(JSON.stringify(removingTargetContact))
   const addressOfRemovingTargetContact = removingTargetContact.Address
   if (addressOfRemovingTargetContact) {
-    const kawata = getFromRegmap('kawata')
-    const sipUriOfRemovingTargetContact = addressOfRemovingTargetContact.match(/sip:.+@.+?(?=;)/)
-    const sipUriOfContact = contact.match(/sip:.+@.+?(?=;)/)
+    const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
+    const dstUriFromRegmap = getFromRegmap(sipUriOfRemovingTargetContact)
+    const sipUriOfContact = getSipBaseUrlFromStr(contact)
     info('------------------------------------------')
-    info('kawata: ' + kawata)
     info('sipUriOfRemovingTargetContact: ' + sipUriOfRemovingTargetContact)
+    info('dstUriFromRegmap: ' + dstUriFromRegmap)
     info('sipUriOfContact: ' + sipUriOfContact)
     info('------------------------------------------')
   }
