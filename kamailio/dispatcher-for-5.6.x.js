@@ -89,7 +89,7 @@ const getRemovingTargetContact = function (contact) {
   if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); }
   if (!contacts) return {}
   const length = contacts.length
-  if (length === 0 || length < MAX_CONTACTS) return {}
+  if (length === 0 || length <= MAX_CONTACTS) return {}
   var minLastModifiedTimeStamp = 0
   var removingTargetContact = {}
   contacts.forEach(function (c) {
@@ -200,8 +200,6 @@ const routeRegister = function (contact) {
     setToRegmap(sipUriOfContact, dstUri)
   }
   // 10. saveしてdispatch先（dstUri）へrequest
-
-  info('Registering username: ' + username)
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
