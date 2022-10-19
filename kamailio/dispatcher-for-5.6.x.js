@@ -34,6 +34,7 @@ const tIsCanceled = function () { return KSR.tm.t_is_canceled() }
 const tCheckStatus = function (replyCode) { return KSR.tm.t_check_status(replyCode) }
 const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
+const isNull = function (data) { return data === null }
 const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
   if (rtn < 0) return null
@@ -57,7 +58,13 @@ const getUsernameFromContact = function (contact) {
   return ex2[1]
 }
 const getContactsByAor = function (aorName) {
-  return execRPC('ul.lookup', ['location', aorName + '@'])
+  const rpcResult = execRPC('ul.lookup', ['location', aorName + '@'])
+  if (isNull(rpcResult)) return null
+  const { Contacts } = rpcResult.result
+  if (Contacts.length === 0) return []
+  const rtn = []
+  Contacts.forEach(function (c) { rtn.push(c.Contact) })
+  return rtn
 }
 
 /********************************
@@ -136,6 +143,10 @@ const routeRegister = function (contact) {
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
   const contacts = getContactsByAor(username)
+  if (isNull(contacts)) {
+    error('Failed to get contacts for a AOR(' + username + ')')
+    return false
+  }
   info(JSON.stringify(contacts))
   return false
 }
@@ -201,7 +212,7 @@ const ksr_request_route = function () {
   if (!routeRegisterEntry()) return
 
   const usernameInReqURI = getPv('rU')
-  if (usernameInReqURI === null) { slSendReply(484, 'Address Incomplete'); return; }
+  if (isNull(usernameInReqURI)) { slSendReply(484, 'Address Incomplete'); return; }
 
   if (!routeDispatch()) return
 }
