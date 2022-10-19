@@ -26,6 +26,8 @@ const setToRegmap = function (key, value) { return setToHtable('regmap', key, va
 const getPv = function (name) { return KSR.pv.get('$' + name) }
 const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
 const getFromRegmap = function (key) { return getFromHtable('regmap', key) }
+const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
+const delFromRegmap = function (key) { return delFromHtable('regmap', key) }
 const setFlag = function (flg) { return KSR.setflag(flg) }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const sendReply = function (code, reason) { return KSR.sl.send_reply(code, reason) }
@@ -48,6 +50,7 @@ const tCheckStatus = function (replyCode) { return KSR.tm.t_check_status(replyCo
 const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
+const isUndefined = function (data) { return data === undefined }
 const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
   if (rtn < 0) return null
@@ -169,10 +172,16 @@ const routeRegister = function (contact) {
   if (isNull(contacts)) { error('No contacts for a AOR(' + username + ')'); }
   const removingTargetContact = getRemovingTargetContact(contacts)
   const addressOfRemovingTargetContact = removingTargetContact.Address
-  if (addressOfRemovingTargetContact) {
+  if (!isUndefined(addressOfRemovingTargetContact)) { // when removing target contact was found
     const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
     const dstUriFromRegmap = getFromRegmap(sipUriOfRemovingTargetContact)
     const sipUriOfContact = getSipBaseUrlFromStr(contact)
+    if (!isNull(dstUriFromRegmap)) { // when dstUri was found in regmap
+      // 5. request UNREGISTER to this dstUri
+      //    -> Operation
+      // 6. delete this map record from regmap
+      delFromRegmap(sipUriOfRemovingTargetContact)
+    }
     info('------------------------------------------')
     info('sipUriOfRemovingTargetContact: ' + sipUriOfRemovingTargetContact)
     info('dstUriFromRegmap: ' + dstUriFromRegmap)
