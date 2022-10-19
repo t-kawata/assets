@@ -94,7 +94,7 @@ const getContactsByAor = function (aorName) {
   contacts.forEach(function (c) { rtn.push(c.Contact) })
   return rtn
 }
-const getRemovingTargetContact = function (contacts) {
+const getRemovingTargetContact = function (username, contacts) {
   if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); return {}; }
   const length = contacts.length
   info(length + ' contacts were found for AOR('+ username + ') in this proxy now.')
@@ -112,7 +112,7 @@ const getRemovingTargetContact = function (contacts) {
 const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
   const username = getUsernameFromContact(contact)
   const contacts = getContactsByAor(username)
-  const addressOfRemovingTargetContact = getRemovingTargetContact(contacts).Address
+  const addressOfRemovingTargetContact = getRemovingTargetContact(username, contacts).Address
   if (isUndefined(addressOfRemovingTargetContact)) return
   info('Try to delete contact(' + addressOfRemovingTargetContact + ')')
   if (unregister('location', addressOfRemovingTargetContact) > 0) {
