@@ -61,6 +61,7 @@ const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
+const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
 const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
   if (rtn < 0) return null
@@ -93,13 +94,11 @@ const getContactsByAor = function (aorName) {
   contacts.forEach(function (c) { rtn.push(c.Contact) })
   return rtn
 }
-const getRemovingTargetContact = function (contact) {
-  const username = getUsernameFromContact(contact)
-  const contacts = getContactsByAor(username)
+const getRemovingTargetContact = function (contacts) {
   if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); return {}; }
   const length = contacts.length
-  info(length + ' contacts were found for AOR('+ username + ')')
-  if (length === 0 || length <= MAX_CONTACTS) return {}
+  info(length + ' contacts were found for AOR('+ username + ') in this proxy now.')
+  if (length === 0 || !isFullContactsNow(length)) return {}
   info('This REGISTER req is over MAX_CONTACTS(' + MAX_CONTACTS + ')')
   var minLastModifiedTimeStamp = 0
   var removingTargetContact = {}
@@ -111,22 +110,27 @@ const getRemovingTargetContact = function (contact) {
   return removingTargetContact
 }
 const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
-  const addressOfRemovingTargetContact = getRemovingTargetContact(contact).Address
+  const username = getUsernameFromContact(contact)
+  const contacts = getContactsByAor(username)
+  const addressOfRemovingTargetContact = getRemovingTargetContact(contacts).Address
   if (isUndefined(addressOfRemovingTargetContact)) return
   info('Try to delete contact(' + addressOfRemovingTargetContact + ')')
-  if (unregister('location', addressOfRemovingTargetContact) === 0) {
+  if (unregister('location', addressOfRemovingTargetContact) > 0) {
     info('Succeeded to unregister a contact(' + addressOfRemovingTargetContact + ')')
   } else {
     info('Failed to unregister a contact(' + addressOfRemovingTargetContact + ')')
   }
+  // TODO [contact: dstUrl]のregmapは間違い。[AOR: dstUrl]に修正する。
   const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
   const dstUriFromRegmapForRemoving = getFromRegmap(sipUriOfRemovingTargetContact)
   if (isNull(dstUriFromRegmapForRemoving)) return
   // 5. request UNREGISTER to this dstUri
   //    -> Operation
+  // TODO [contact: dstUrl]のregmapは間違い。[AOR: dstUrl]に修正する。
   delFromRegmap(sipUriOfRemovingTargetContact)
+  return contacts
 }
-const getCorrectDstUriWithSettingRegmapRecord = function (contact) {
+const getCorrectDstUriWithSettingRegmapRecord = function (contact, contacts) {
   info('Try to search a saved Dst-URI in regmap for this contact(' + contact + ')')
   const sipUriOfContact = getSipBaseUrlFromStr(contact)
   const dstUriFromRegmap = getFromRegmap(sipUriOfContact)
@@ -141,6 +145,7 @@ const getCorrectDstUriWithSettingRegmapRecord = function (contact) {
     if (!routeSelectDst()) return false
     dstUri = getPv('du')
     info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
+    // TODO [contact: dstUrl]のregmapは間違い。[AOR: dstUrl]に修正する。
     setToRegmap(sipUriOfContact, dstUri)
   }
   return dstUri
@@ -217,9 +222,9 @@ const routeRegisterEntry = function () {
 }
 const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
-  removeNotFreshOneContactWhenOverMaxContact(contact)
-  const dstUri = getCorrectDstUriWithSettingRegmapRecord(contact)
-  info('Now we decided to use [' + dstUri + '] as Dst-URI.')
+  const contactsArrForThisAor = removeNotFreshOneContactWhenOverMaxContact(contact)
+  const dstUri = getCorrectDstUriWithSettingRegmapRecord(contact, contactsArrForThisAor)
+  info('Now we decided to use [' + dstUri + '] as Dst-URI to dispatch.')
   // 10. saveしてdispatch先（dstUri）へrequest
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
