@@ -13,7 +13,19 @@ const JSDT_DEBUG = true
 const info = function (msg) { if (JSDT_DEBUG) KSR.info(msg) }
 const notice = function (msg) { KSR.notice(msg) }
 const error = function (msg) { KSR.err(msg) }
+const setToHtable = function (table, key, value) {
+  var rtn = 0
+  switch (typeof value) {
+    case 'number': rtn = KSR.htable.sht_seti(table, key, value); break;
+    case 'string': rtn = KSR.htable.sht_sets(table, key, value); break;
+    default: rtn = KSR.htable.sht_sets(table, key, JSON.stringify(value)); break;
+  }
+  return rtn
+}
+const setToRegmap = function (key, value) { return setToHtable('regmap', key, value) }
 const getPv = function (name) { return KSR.pv.get('$' + name) }
+const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
+const getFromRegmap = function (key) { return getFromHtable('regmap', key) }
 const setFlag = function (flg) { return KSR.setflag(flg) }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const sendReply = function (code, reason) { return KSR.sl.send_reply(code, reason) }
@@ -67,18 +79,18 @@ const getContactsByAor = function (aorName) {
   contacts.forEach(function (c) { rtn.push(c.Contact) })
   return rtn
 }
-const getRemoveTargetContact = function (contacts) {
+const getRemovingTargetContact = function (contacts) {
+  if (!contacts) return {}
   const length = contacts.length
-  if (!contacts || length === 0) return {}
-  if (length < MAX_CONTACTS) return {}
+  if (length === 0 || length < MAX_CONTACTS) return {}
   var minLastModifiedTimeStamp = 0
-  var removeTargetContact = {}
+  var removingTargetContact = {}
   contacts.forEach(function (c) {
     if (minLastModifiedTimeStamp !== 0 && c['Last-Modified'] >= minLastModifiedTimeStamp) return
     minLastModifiedTimeStamp = c['Last-Modified']
-    removeTargetContact = c
+    removingTargetContact = c
   })
-  return removeTargetContact
+  return removingTargetContact
 }
 
 /********************************
@@ -154,8 +166,19 @@ const routeRegister = function (contact) {
   const username = getUsernameFromContact(contact)
   const contacts = getContactsByAor(username)
   if (isNull(contacts)) { error('No contacts for a AOR(' + username + ')'); }
-  const removeTargetContact = getRemoveTargetContact(contacts)
-  info(JSON.stringify(removeTargetContact))
+  const removingTargetContact = getRemovingTargetContact(contacts)
+  info(JSON.stringify(removingTargetContact))
+  const addressOfRemovingTargetContact = removingTargetContact.Address
+  if (addressOfRemovingTargetContact) {
+    const kawata = getFromRegmap('kawata')
+    const sipUriOfRemovingTargetContact = addressOfRemovingTargetContact.match(/sip:.+@.+?(?=;)/)
+    const sipUriOfContact = contact.match(/sip:.+@.+?(?=;)/)
+    info('------------------------------------------')
+    info('kawata: ' + kawata)
+    info('sipUriOfRemovingTargetContact: ' + sipUriOfRemovingTargetContact)
+    info('sipUriOfContact: ' + sipUriOfContact)
+    info('------------------------------------------')
+  }
   // info(JSON.stringify(contacts))
 
   info('Registering username: ' + username)
