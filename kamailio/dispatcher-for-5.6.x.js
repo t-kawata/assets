@@ -60,10 +60,10 @@ const getUsernameFromContact = function (contact) {
 const getContactsByAor = function (aorName) {
   const rpcResult = execRPC('ul.lookup', ['location', aorName + '@'])
   if (isNull(rpcResult)) return null
-  const { Contacts } = rpcResult.result
-  if (Contacts.length === 0) return []
+  const contacts = rpcResult.result.Contacts
+  if (contacts.length === 0) return []
   const rtn = []
-  Contacts.forEach(function (c) { rtn.push(c.Contact) })
+  contacts.forEach(function (c) { rtn.push(c.Contact) })
   return rtn
 }
 
