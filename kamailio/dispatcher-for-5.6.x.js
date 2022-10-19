@@ -4,7 +4,7 @@
 const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
-const MAX_CONTACTS = 5
+const MAX_CONTACTS = 1
 const JSDT_DEBUG = true
 
 /**
@@ -169,8 +169,9 @@ const routeRegisterEntry = function () {
 const routeRegister = function (contact) {
   const username = getUsernameFromContact(contact)
   const contacts = getContactsByAor(username)
-  if (isNull(contacts)) { error('No contacts for a AOR(' + username + ')'); }
+  if (isNull(contacts)) { info('No contacts for a AOR(' + username + ')'); }
   const removingTargetContact = getRemovingTargetContact(contacts)
+  info(JSON.stringify(removingTargetContact))
   const addressOfRemovingTargetContact = removingTargetContact.Address
   if (!isUndefined(addressOfRemovingTargetContact)) { // when removing target contact was found
     const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
