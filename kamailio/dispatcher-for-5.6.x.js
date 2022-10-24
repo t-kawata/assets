@@ -112,7 +112,7 @@ const getRemovingTargetContact = function (username, contacts) {
 const removeNotFreshOneContactWhenOverMaxContact = function (username) {
   const contacts = getContactsByAor(username)
   const addressOfRemovingTargetContact = getRemovingTargetContact(username, contacts).Address
-  if (isUndefined(addressOfRemovingTargetContact)) return
+  if (isUndefined(addressOfRemovingTargetContact)) return contacts
   info('Try to delete contact(' + addressOfRemovingTargetContact + ')')
   if (unregister('location', addressOfRemovingTargetContact) > 0) {
     info('Succeeded to unregister a contact(' + addressOfRemovingTargetContact + ')')
@@ -120,10 +120,9 @@ const removeNotFreshOneContactWhenOverMaxContact = function (username) {
     info('Failed to unregister a contact(' + addressOfRemovingTargetContact + ')')
   }
   const dstUriFromRegmapForRemoving = getFromRegmap(username)
-  if (isNull(dstUriFromRegmapForRemoving)) return
+  if (isNull(dstUriFromRegmapForRemoving)) return contacts
   // 5. request UNREGISTER to this dstUri
   //    -> Operation
-  delFromRegmap(username)
   return contacts
 }
 const getCorrectDstUriWithSettingRegmapRecord = function (username, contact, contacts) {
