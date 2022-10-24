@@ -109,8 +109,7 @@ const getRemovingTargetContact = function (username, contacts) {
   })
   return removingTargetContact
 }
-const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
-  const username = getUsernameFromContact(contact)
+const removeNotFreshOneContactWhenOverMaxContact = function (username) {
   const contacts = getContactsByAor(username)
   const addressOfRemovingTargetContact = getRemovingTargetContact(username, contacts).Address
   if (isUndefined(addressOfRemovingTargetContact)) return
@@ -120,33 +119,28 @@ const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
   } else {
     info('Failed to unregister a contact(' + addressOfRemovingTargetContact + ')')
   }
-  // TODO [contact: dstUrl]のregmapは間違い。[AOR: dstUrl]に修正する。
-  const sipUriOfRemovingTargetContact = getSipBaseUrlFromStr(addressOfRemovingTargetContact)
-  const dstUriFromRegmapForRemoving = getFromRegmap(sipUriOfRemovingTargetContact)
+  const dstUriFromRegmapForRemoving = getFromRegmap(username)
   if (isNull(dstUriFromRegmapForRemoving)) return
   // 5. request UNREGISTER to this dstUri
   //    -> Operation
-  // TODO [contact: dstUrl]のregmapは間違い。[AOR: dstUrl]に修正する。
-  delFromRegmap(sipUriOfRemovingTargetContact)
+  delFromRegmap(username)
   return contacts
 }
-const getCorrectDstUriWithSettingRegmapRecord = function (contact, contacts) {
-  info('Try to search a saved Dst-URI in regmap for this contact(' + contact + ')')
-  const sipUriOfContact = getSipBaseUrlFromStr(contact)
-  const dstUriFromRegmap = getFromRegmap(sipUriOfContact)
+const getCorrectDstUriWithSettingRegmapRecord = function (username, contact, contacts) {
+  info('Try to search a saved Dst-URI in regmap for an AOR(' + username + ')')
+  const dstUriFromRegmap = getFromRegmap(username)
   var dstUri = ''
   if (!isNull(dstUriFromRegmap)) {
-    info('A saved Dst-URI(' + dstUriFromRegmap + ') was found in regmap for a contact sip uri(' + sipUriOfContact + ').')
+    info('A saved Dst-URI(' + dstUriFromRegmap + ') was found in regmap for an AOR(' + username + ').')
     info('Use [' + dstUriFromRegmap + '] as Dst-URI to dispatch now.')
     dstUri = dstUriFromRegmap
   } else {
-    info('No saved Dst-URI was found in regmap for a contact sip uri(' + sipUriOfContact + ').')
+    info('No saved Dst-URI was found in regmap for an AOR(' + username + ').')
     info('Select a Dst-URI with auto-select-system of dispatcher.')
     if (!routeSelectDst()) return false
     dstUri = getPv('du')
     info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
-    // TODO [contact: dstUrl]のregmapは間違い。[AOR: dstUrl]に修正する。
-    setToRegmap(sipUriOfContact, dstUri)
+    setToRegmap(username, dstUri)
   }
   return dstUri
 }
@@ -213,17 +207,14 @@ const routeRegisterEntry = function () {
   if (!contact) return false
   if (!contact.match(/expires=0/)) return routeRegister(contact)
   else return routeUnregister(contact)
-  // if (!routeSelectDst()) return false
-  // const reqUri = getPv('ru')
-  // const dstUri = getPv('du')
-  // info('Request-URI: ' + reqUri)
-  // info('Destination-URI: ' + dstUri)
-  // return false
 }
 const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
-  const contactsArrForThisAor = removeNotFreshOneContactWhenOverMaxContact(contact)
-  const dstUri = getCorrectDstUriWithSettingRegmapRecord(contact, contactsArrForThisAor)
+  const username = getUsernameFromContact(contact)
+  if (!username) { info('Failed to get username from contact.'); return false; }
+  const contactsArrForThisAor = removeNotFreshOneContactWhenOverMaxContact(username)
+  const dstUri = getCorrectDstUriWithSettingRegmapRecord(username, contact, contactsArrForThisAor)
+  if (!dstUri) { info('Failed to get any Dst-URI to dispatch.'); return false; }
   info('Now we decided to use [' + dstUri + '] as Dst-URI to dispatch.')
   // 10. saveしてdispatch先（dstUri）へrequest
   info('Try to register a contact: ' + contact)
