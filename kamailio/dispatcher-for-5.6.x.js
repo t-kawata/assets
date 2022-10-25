@@ -4,7 +4,7 @@
 const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
-const MAX_CONTACTS = 1
+const MAX_CONTACTS = 5
 const JSDT_DEBUG = true
 
 /**
@@ -121,13 +121,11 @@ const removeNotFreshOneContactWhenOverMaxContact = function (username) {
   }
   const dstUriFromRegmapForRemoving = getFromRegmap(username)
   if (isNull(dstUriFromRegmapForRemoving)) return contacts
-  // 5. request UNREGISTER to this dstUri
-  //    -> Operation
+  // TODO 5. request UNREGISTER to this dstUri
   return contacts
 }
 const getCorrectDstUriWithSettingRegmapRecord = function (username, contact, contacts) {
-  info('Try to search a saved Dst-URI in regmap for an AOR(' + username + ')')
-  const dstUriFromRegmap = getFromRegmap(username)
+  const dstUriFromRegmap = getDstUriFromRegMap(username)
   var dstUri = ''
   if (!isNull(dstUriFromRegmap)) {
     info('A saved Dst-URI(' + dstUriFromRegmap + ') was found in regmap for an AOR(' + username + ').')
@@ -142,6 +140,10 @@ const getCorrectDstUriWithSettingRegmapRecord = function (username, contact, con
     setToRegmap(username, dstUri)
   }
   return dstUri
+}
+const getDstUriFromRegMap = function (username) {
+  info('Try to search a saved Dst-URI in regmap for an AOR(' + username + ')')
+  return getFromRegmap(username)
 }
 
 /********************************
@@ -211,21 +213,31 @@ const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
   const username = getUsernameFromContact(contact)
   if (!username) { info('Failed to get username from contact.'); return false; }
-  const contactsArrForThisAor = removeNotFreshOneContactWhenOverMaxContact(username)
-  const dstUri = getCorrectDstUriWithSettingRegmapRecord(username, contact, contactsArrForThisAor)
+  const contacts = removeNotFreshOneContactWhenOverMaxContact(username)
+  const dstUri = getCorrectDstUriWithSettingRegmapRecord(username, contact, contacts)
   if (!dstUri) { info('Failed to get any Dst-URI to dispatch.'); return false; }
   info('Now we decided to use [' + dstUri + '] as Dst-URI to dispatch.')
-  // 10. saveしてdispatch先（dstUri）へrequest
+  // TODO 10. saveしてdispatch先（dstUri）へrequest
   info('Try to register a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
   return false
 }
 const routeUnregister = function (contact) {
+  info('Got Un-REGISTER req with contact(' + contact + ')')
+  const username = getUsernameFromContact(contact)
+  log(username)
+  if (!username) { info('Failed to get username from contact.'); return false; }
+  const dstUri = getDstUriFromRegMap(username)
+  if (!isNull(dstUri)) {
+    // UNREGISTER 2. dstUriにUn-REGISTERのrequest
+    const contacts = getContactsByAor(username)
+    log(JSON.stringify(contacts))
+  }
+
   info('Try to unregister a contact: ' + contact)
   if (save('location') < 0) slReplyError()
   info('Unregistered a contact: ' + contact)
-
   return false
 }
 const routeDispatch = function () {
