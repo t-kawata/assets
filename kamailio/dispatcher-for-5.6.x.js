@@ -298,8 +298,19 @@ const failureRouteRtfDispatch = function () {
  * Event Handlers bgn
  ********************************/
 const onRegistrarEvent = function (eventName) {
-  info('Event Name: ' + eventName)
-  info(KSR.pv.getw('$ulc(exp=>addr)'))
+  switch (eventName) {
+    case 'usrloc:contact-expired': onContactExpired(); break;
+    default: break;
+  }
+}
+const onContactExpired = function () {
+  const contact = `<${getPv('ulc(exp=>addr)')}>`
+  info('A contact(' + contact + ') was expired.')
+  const data = getDstUriToUnRegister(contact)
+  if (data.dstUri) {
+    // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
+    tryToCleanRegmap(data.username, contact)
+  }
 }
 /********************************
  * Event Handlers end
