@@ -63,7 +63,7 @@ const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
 const isTheTimingToDeleteFromRegmap = function (contacts, sipFullUrl) {
-  return !contacts &&
+  return  contacts &&
           contacts.length === 1 &&
           contacts.filter(function (c) { return c.Address === sipFullUrl }).length === 1
 }
@@ -82,7 +82,10 @@ const execRPC = function (method, paramsArr) {
   return JSON.parse(body)
 }
 const getSipBaseUrlFromStr = function (str) { return String(str).match(/sip:.+@.+?:.[0-9]+/) || '' }
-const getSipFullUrlFromContact = function (contact) { return String(contact).match(/(?<=\<).*?(?=\>)/) || '' }
+const getSipFullUrlFromContact = function (contact) {
+  const tmp = String(contact).match(/\<.+?\>/) || []
+  return tmp.length > 0 ? tmp[0].replace(/\<|\>/g, '') : ''
+}
 const getUsernameFromContact = function (contact) {
   if (!contact) return ''
   const ex1 = contact.split('@')
@@ -146,6 +149,38 @@ const getCorrectDstUriWithSettingRegmapRecord = function (username, contact, con
     setToRegmap(username, dstUri)
   }
   return dstUri
+}
+const getDstUriToRegister = function (contact) {
+  const username = getUsernameFromContact(contact)
+  if (!username) { info('Failed to get username from contact.'); return false; }
+  const contacts = removeNotFreshOneContactWhenOverMaxContact(username)
+  const dstUri = getCorrectDstUriWithSettingRegmapRecord(username, contact, contacts)
+  if (!dstUri) { info('Failed to get any Dst-URI to dispatch.'); return false; }
+  info('Now we decided to use [' + dstUri + '] as Dst-URI to dispatch.')
+  return dstUri
+}
+const getDstUriToUnRegister = function (contact) {
+  const username = getUsernameFromContact(contact)
+  if (!username) { info('Failed to get username from contact.'); return false; }
+  const dstUri = getDstUriFromRegMap(username)
+  if (!dstUri) { info('Failed to get any Dst-URI to send Un-REGISTER.'); return false; }
+  info('Now we decided to use [' + dstUri + '] as Dst-URI to send Un-REGISTER.')
+  return { dstUri, username }
+}
+const tryToCleanRegmap = function (username, contact) {
+  const contacts = getContactsByAor(username)
+  const sipFullUrl = getSipFullUrlFromContact(contact)
+  if (isTheTimingToDeleteFromRegmap(contacts, sipFullUrl)) delFromRegmap(username)
+}
+const saveToRegister = function (contact) {
+  info('Try to register a contact: ' + contact)
+  if (save('location') < 0) slReplyError()
+  info('Registered a contact: ' + contact)
+}
+const saveToUnRegister = function (contact) {
+  info('Try to unregister a contact: ' + contact)
+  if (save('location') < 0) slReplyError()
+  info('Unregistered a contact: ' + contact)
 }
 const getDstUriFromRegMap = function (username) {
   info('Try to search a saved Dst-URI in regmap for an AOR(' + username + ')')
@@ -217,35 +252,20 @@ const routeRegisterEntry = function () {
 }
 const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
-  const username = getUsernameFromContact(contact)
-  if (!username) { info('Failed to get username from contact.'); return false; }
-  const contacts = removeNotFreshOneContactWhenOverMaxContact(username)
-  const dstUri = getCorrectDstUriWithSettingRegmapRecord(username, contact, contacts)
-  if (!dstUri) { info('Failed to get any Dst-URI to dispatch.'); return false; }
-  info('Now we decided to use [' + dstUri + '] as Dst-URI to dispatch.')
+  const dstUri = getDstUriToRegister(contact)
+  if (!dstUri) return false
   // TODO 10. saveしてdispatch先（dstUri）へrequest
-  info('Try to register a contact: ' + contact)
-  if (save('location') < 0) slReplyError()
-  info('Registered a contact: ' + contact)
+  saveToRegister(contact)
   return false
 }
 const routeUnregister = function (contact) {
   info('Got Un-REGISTER req with contact(' + contact + ')')
-  const username = getUsernameFromContact(contact)
-  if (!username) { info('Failed to get username from contact.'); return false; }
-  const dstUri = getDstUriFromRegMap(username)
-  if (!isNull(dstUri)) {
+  const data = getDstUriToUnRegister(contact)
+  if (data.dstUri) {
     // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
-    const contacts = getContactsByAor(username)
-    const sipFullUrl = getSipFullUrlFromContact(contact)
-    if (isTheTimingToDeleteFromRegmap(contacts, sipFullUrl)) {
-      delFromRegmap(username)
-    }
+    tryToCleanRegmap(data.username, contact)
   }
-
-  info('Try to unregister a contact: ' + contact)
-  if (save('location') < 0) slReplyError()
-  info('Unregistered a contact: ' + contact)
+  saveToUnRegister(contact)
   return false
 }
 const routeDispatch = function () {
