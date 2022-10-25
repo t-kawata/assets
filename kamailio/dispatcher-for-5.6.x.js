@@ -40,6 +40,7 @@ const delFromRegmap = function (key) {
 const setFlag = function (flg) { return KSR.setflag(flg) }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const sendReply = function (code, reason) { return KSR.sl.send_reply(code, reason) }
+const reply404 = function () { return slSendReply(404, 'Not found') }
 const tCheckTrans = function () { return KSR.tm.t_check_trans() }
 const tPreCheckTrans = function () { return KSR.tmx.t_precheck_trans() }
 const hasToTag = function () { return KSR.siputils.has_totag() }
@@ -61,6 +62,8 @@ const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
+const isValidUsername = function (username) { return !!(/^s[0-9]{10}$/.exec(username)) }
+const isValidRegisteringContact = function (contact) { return isValidUsername(getUsernameFromContact(contact)) }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
 const isTheTimingToDeleteFromRegmap = function (contacts, sipFullUrl, isContactExpired) {
   if (isContactExpired) { return !contacts || (contacts && contacts.length === 0) }
@@ -74,10 +77,10 @@ const execRPC = function (method, paramsArr) {
   const code = getPv('jsonrpl(code)')
   const body = getPv('jsonrpl(body)')
   if (code !== 200) {
-    info('ERROR Code: ' + code)
-    info('ERROR Body: ' + JSON.stringify(JSON.parse(body)))
-    info('ERROR Failed Method: ' + method)
-    info('ERROR Failed Method Params: ' + JSON.stringify(paramsArr))
+    info('RPC Code: ' + code)
+    info('RPC Body: ' + JSON.stringify(JSON.parse(body)))
+    info('RPC Failed Method: ' + method)
+    info('RPC Failed Method Params: ' + JSON.stringify(paramsArr))
     return null;
   }
   return JSON.parse(body)
@@ -232,7 +235,7 @@ const routeWithinDlg = function () {
     if (tCheckTrans() > 0) tRelay()
     return false
   }
-  slSendReply(404, 'Not here')
+  reply404()
   return false
 }
 const routeInvite = function () {
@@ -241,20 +244,20 @@ const routeInvite = function () {
 }
 const routePresence = function () {
   if (!KSR.is_PUBLISH() && !KSR.is_SUBSCRIBE()) return true
-  slSendReply(404, 'Not here')
+  reply404()
   return false
 }
 const routeRegisterEntry = function () {
   if (!KSR.is_REGISTER()) return true
   const contact = getPv('ct')
-  if (!contact) return false
+  if (!contact || !isValidRegisteringContact(contact)) { reply404(); return false; }
   if (!contact.match(/expires=0/)) return routeRegister(contact)
   else return routeUnregister(contact)
 }
 const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
   const dstUri = getDstUriToRegister(contact)
-  if (!dstUri) return false
+  if (!dstUri) { reply404(); return false; }
   // TODO 10. saveしてdispatch先（dstUri）へrequest
   saveToRegister(contact)
   return false
