@@ -62,7 +62,8 @@ const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
-const isTheTimingToDeleteFromRegmap = function (contacts, sipFullUrl) {
+const isTheTimingToDeleteFromRegmap = function (contacts, sipFullUrl, isContactExpired) {
+  if (isContactExpired) { return !contacts || (contacts && contacts.length === 0) }
   return  contacts &&
           contacts.length === 1 &&
           contacts.filter(function (c) { return c.Address === sipFullUrl }).length === 1
@@ -167,10 +168,10 @@ const getDstUriToUnRegister = function (contact) {
   info('Now we decided to use [' + dstUri + '] as Dst-URI to send Un-REGISTER.')
   return { dstUri, username }
 }
-const tryToCleanRegmap = function (username, contact) {
+const tryToCleanRegmap = function (username, contact, isContactExpired) {
   const contacts = getContactsByAor(username)
   const sipFullUrl = getSipFullUrlFromContact(contact)
-  if (isTheTimingToDeleteFromRegmap(contacts, sipFullUrl)) delFromRegmap(username)
+  if (isTheTimingToDeleteFromRegmap(contacts, sipFullUrl, isContactExpired)) delFromRegmap(username)
 }
 const saveToRegister = function (contact) {
   info('Try to register a contact: ' + contact)
@@ -263,7 +264,7 @@ const routeUnregister = function (contact) {
   const data = getDstUriToUnRegister(contact)
   if (data.dstUri) {
     // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
-    tryToCleanRegmap(data.username, contact)
+    tryToCleanRegmap(data.username, contact, false)
   }
   saveToUnRegister(contact)
   return false
@@ -304,12 +305,13 @@ const onRegistrarEvent = function (eventName) {
   }
 }
 const onContactExpired = function () {
-  const contact = `<${getPv('ulc(exp=>addr)')}>`
+  const contactAddr = getPv('ulc(exp=>addr)')
+  const contact = '<' + contactAddr + '>'
   info('A contact(' + contact + ') was expired.')
   const data = getDstUriToUnRegister(contact)
   if (data.dstUri) {
     // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
-    tryToCleanRegmap(data.username, contact)
+    tryToCleanRegmap(data.username, contact, true)
   }
 }
 /********************************
