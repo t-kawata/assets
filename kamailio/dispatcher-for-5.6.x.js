@@ -62,6 +62,11 @@ const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
+const isTheTimingToDeleteFromRegmap = function (contacts, sipFullUrl) {
+  return !contacts &&
+          contacts.length === 1 &&
+          contacts.filter(function (c) { return c.Address === sipFullUrl }).length === 1
+}
 const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
   if (rtn < 0) return null
@@ -233,7 +238,7 @@ const routeUnregister = function (contact) {
     // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
     const contacts = getContactsByAor(username)
     const sipFullUrl = getSipFullUrlFromContact(contact)
-    if (!contacts && contacts.length === 1 && contacts.filter(c => c.Address === sipFullUrl).length === 1 ) {
+    if (isTheTimingToDeleteFromRegmap(contacts, sipFullUrl)) {
       delFromRegmap(username)
     }
   }
