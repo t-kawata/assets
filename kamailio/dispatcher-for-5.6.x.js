@@ -62,7 +62,7 @@ const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
-const isValidUsername = function (username) { return !!(/^s[0-9]{10}$/.exec(username)) }
+const isValidUsername = function (username) { return !!(/^s[0-9]{11}$/.exec(username)) }
 const isValidRegisteringContact = function (contact) { return isValidUsername(getUsernameFromContact(contact)) }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
 const isTheTimingToDeleteFromRegmap = function (contacts, sipFullUrl, isContactExpired) {
