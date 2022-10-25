@@ -77,6 +77,7 @@ const execRPC = function (method, paramsArr) {
   return JSON.parse(body)
 }
 const getSipBaseUrlFromStr = function (str) { return String(str).match(/sip:.+@.+?:.[0-9]+/) || '' }
+const getSipFullUrlFromContact = function (contact) { return String(contact).match(/(?<=\<).*?(?=\>)/) || '' }
 const getUsernameFromContact = function (contact) {
   if (!contact) return ''
   const ex1 = contact.split('@')
@@ -226,13 +227,15 @@ const routeRegister = function (contact) {
 const routeUnregister = function (contact) {
   info('Got Un-REGISTER req with contact(' + contact + ')')
   const username = getUsernameFromContact(contact)
-  log(username)
   if (!username) { info('Failed to get username from contact.'); return false; }
   const dstUri = getDstUriFromRegMap(username)
   if (!isNull(dstUri)) {
-    // UNREGISTER 2. dstUriにUn-REGISTERのrequest
+    // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
     const contacts = getContactsByAor(username)
-    log(JSON.stringify(contacts))
+    const sipFullUrl = getSipFullUrlFromContact(contact)
+    if (!contacts && contacts.length === 1 && contacts.filter(c => c.Address === sipFullUrl).length === 1 ) {
+      delFromRegmap(username)
+    }
   }
 
   info('Try to unregister a contact: ' + contact)
