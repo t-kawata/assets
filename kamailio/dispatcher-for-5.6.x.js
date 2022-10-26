@@ -50,6 +50,7 @@ const isMyselfFuri = function () { return KSR.is_myself_furi() }
 const removeHf = function (headerName) { return KSR.textops.remove_hf(headerName) }
 const recordRoute = function () { return KSR.rr.record_route() }
 const save = function (table, flags) { return KSR.registrar.save(table, flags) }
+const regSendReply = function () { return KSR.registrar.reg_send_reply() }
 const unregister = function (table, uri) { return KSR.registrar.unregister(table, uri) }
 const dsSelectDst = function (set, alg) { return KSR.dispatcher.ds_select_dst(set, alg) }
 const dsNextDst = function () { return KSR.dispatcher.ds_next_dst() }
@@ -177,8 +178,10 @@ const tryToCleanRegmap = function (username, contact, isContactExpired) {
   if (isTheTimingToDeleteFromRegmap(contacts, sipFullUrl, isContactExpired)) delFromRegmap(username)
 }
 const saveToRegister = function (contact) {
+  // TODO 10. saveしてdispatch先（dstUri）へrequest
   info('Try to register a contact: ' + contact)
-  if (save('location') < 0) slReplyError()
+  if (save('location', 2) < 0) slReplyError()
+  regSendReply()
   info('Registered a contact: ' + contact)
 }
 const saveToUnRegister = function (contact) {
@@ -258,7 +261,6 @@ const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
   const dstUri = getDstUriToRegister(contact)
   if (!dstUri) { reply404(); return false; }
-  // TODO 10. saveしてdispatch先（dstUri）へrequest
   saveToRegister(contact)
   return false
 }
