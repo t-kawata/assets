@@ -13,7 +13,6 @@ const JSDT_DEBUG = true
 const info = function (msg) { if (JSDT_DEBUG) KSR.info(msg) }
 const notice = function (msg) { KSR.notice(msg) }
 const error = function (msg) { KSR.err(msg) }
-const getByteFromStr = function (str) { return (new Blob([str], { type: 'text/plain' })).size }
 const setPv = function (key, value) {
   var rtn = 0
   const lastKey = '$' + key
@@ -55,7 +54,7 @@ const delFromRegmap = function (key) {
 const sendUacReq = function (method, params, hdrs, body) {
   if (!method) return 0
   const lastBody = body || ''
-  const defaultHeaders = { 'Content-Length': getByteFromStr(lastBody) }
+  const defaultHeaders = { 'Content-Length': lastBody.length }
   const hdrsObj = hdrs && typeof hdrs === 'object' ? Object.assign(defaultHeaders, hdrs) : defaultHeaders
   const hdrsArr = Object.keys(hdrsObj).map(function (k) { return k + ': ' + hdrsObj[k] })
   setUacReq('hdrs', hdrsArr.join("\n"))
