@@ -13,6 +13,17 @@ const JSDT_DEBUG = true
 const info = function (msg) { if (JSDT_DEBUG) KSR.info(msg) }
 const notice = function (msg) { KSR.notice(msg) }
 const error = function (msg) { KSR.err(msg) }
+const getByteFromStr = function (str) { return (new Blob([str], { type: 'text/plain' })).size }
+const setPv = function (key, value) {
+  var rtn = 0
+  const lastKey = '$' + key
+  switch (typeof value) {
+    case 'number': rtn = KSR.pv.seti(lastKey, value); break;
+    case 'string': rtn = KSR.pv.sets(lastKey, value); break;
+    default: rtn = KSR.pv.sets(lastKey, JSON.stringify(value)); break;
+  }
+  return rtn
+}
 const setToHtable = function (table, key, value) {
   var rtn = 0
   switch (typeof value) {
@@ -22,9 +33,13 @@ const setToHtable = function (table, key, value) {
   }
   return rtn
 }
+const setFlag = function (flg) { return KSR.setflag(flg) }
 const setToRegmap = function (key, value) {
   info('Set a regmap record(' + key + ': ' + value + ')')
   return setToHtable('regmap', key, value)
+}
+const setUacReq = function (key, value) {
+  return setPv('uac_req(' + key + ')', value)
 }
 const getPv = function (name) { return KSR.pv.get('$' + name) }
 const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
@@ -37,7 +52,28 @@ const delFromRegmap = function (key) {
   info('Delete a regmap record by key(' + key + ')')
   return delFromHtable('regmap', key)
 }
-const setFlag = function (flg) { return KSR.setflag(flg) }
+const sendUacReq = function (method, params, hdrs, body) {
+  if (!method) return 0
+  const lastBody = body || ''
+  const defaultHeaders = { 'Content-Length': getByteFromStr(lastBody) }
+  const hdrsObj = hdrs && typeof hdrs === 'object' ? Object.assign(defaultHeaders, hdrs) : defaultHeaders
+  const hdrsArr = Object.keys(hdrsObj).map(function (k) { return k + ': ' + hdrsObj[k] })
+  setUacReq('hdrs', hdrsArr.join("\n"))
+  setUacReq('method', method)
+  setUacReq('body', lastBody)
+  if (params && typeof params === 'object') { Object.keys(params).forEach(function (k) { setUacReq(k, params[k]) }) }
+  return KSR.uac.uac_req_send()
+}
+const sendRegister = function () {
+  return sendUacReq('REGISTER', {
+    ruri: 'sip:10.1.10.4:5061',
+    furi: 'sip:101@44.225.154.71:5061',
+    turi: 'sip:101@44.225.154.71:5061'
+  }, {
+    Contact: '<sip:101@10.1.10.140:5061>',
+    Expires: 60
+  }, '')
+}
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const sendReply = function (code, reason) { return KSR.sl.send_reply(code, reason) }
 const reply404 = function () { return slSendReply(404, 'Not found') }
@@ -50,6 +86,8 @@ const isMyselfFuri = function () { return KSR.is_myself_furi() }
 const removeHf = function (headerName) { return KSR.textops.remove_hf(headerName) }
 const recordRoute = function () { return KSR.rr.record_route() }
 const save = function (table, flags) { return KSR.registrar.save(table, flags) }
+const saveWithReply = function () { return save('location') }
+const saveWithoutReply = function () { return save('location', 2) }
 const regSendReply = function () { return KSR.registrar.reg_send_reply() }
 const unregister = function (table, uri) { return KSR.registrar.unregister(table, uri) }
 const dsSelectDst = function (set, alg) { return KSR.dispatcher.ds_select_dst(set, alg) }
@@ -179,14 +217,16 @@ const tryToCleanRegmap = function (username, contact, isContactExpired) {
 }
 const saveToRegister = function (contact) {
   // TODO 10. saveしてdispatch先（dstUri）へrequest
+  sendRegister()
+
   info('Try to register a contact: ' + contact)
-  if (save('location', 2) < 0) slReplyError()
+  if (saveWithoutReply('location') < 0) slReplyError()
   regSendReply()
   info('Registered a contact: ' + contact)
 }
 const saveToUnRegister = function (contact) {
   info('Try to unregister a contact: ' + contact)
-  if (save('location') < 0) slReplyError()
+  if (saveWithReply('location') < 0) slReplyError()
   info('Unregistered a contact: ' + contact)
 }
 const getDstUriFromRegMap = function (username) {
