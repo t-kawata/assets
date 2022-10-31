@@ -70,7 +70,9 @@ const sendRegister = function () {
     turi: 'sip:101@44.225.154.71:5061'
   }, {
     Contact: '<sip:101@10.1.10.140:5061>',
-    Expires: 60
+    Expires: 60,
+    Allow: 'INVITE, ACK, CANCEL, BYE, NOTIFY, REFER, MESSAGE, OPTIONS, INFO, SUBSCRIBE',
+    'Allow-Events': 'presence, kpml, talk'
   }, '')
 }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
@@ -280,6 +282,15 @@ const routeWithinDlg = function () {
   reply404()
   return false
 }
+const routeAuth = function () {
+  if (KSR.is_REGISTER() || isMyselfFuri()) {
+    const fhost = KSR.kx.gete_fhost()
+    if (KSR.auth_db.auth_check(fhost, "subscriber", 1) < 0) { KSR.auth.auth_challenge(fhost, 0); return false; }
+    if (!KSR.is_method_in("RP")) KSR.auth.consume_credentials()
+  }
+  if (!isMyselfFuri() && !isMyselfRuri()) { slSendReply(403, 'Not relaying'); return false; }
+  return true
+}
 const routeInvite = function () {
   if (KSR.is_INVITE()) setFlag(FLT_ACC)
   return true
@@ -371,6 +382,8 @@ const ksr_request_route = function () {
   if (!routeCancel()) return
   if (!routeAck()) return
   if (!routeWithinDlg()) return
+
+  if (!routeAuth()) return
 
   removeHf('Route')
   if (KSR.is_INVITE() || KSR.is_SUBSCRIBE()) recordRoute()
