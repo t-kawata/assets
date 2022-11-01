@@ -5,6 +5,7 @@ const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
 const MAX_CONTACTS = 5
+const AUTH_COMMON_DOMAIN = 'shyme'
 const JSDT_DEBUG = true
 
 /**
@@ -63,18 +64,6 @@ const sendUacReq = function (method, params, hdrs, body) {
   if (params && typeof params === 'object') { Object.keys(params).forEach(function (k) { setUacReq(k, params[k]) }) }
   return KSR.uac.uac_req_send()
 }
-const sendRegister = function () {
-  return sendUacReq('REGISTER', {
-    ruri: 'sip:10.1.10.4:5061',
-    furi: 'sip:101@44.225.154.71:5061',
-    turi: 'sip:101@44.225.154.71:5061'
-  }, {
-    Contact: '<sip:101@10.1.10.140:5061>',
-    Expires: 60,
-    Allow: 'INVITE, ACK, CANCEL, BYE, NOTIFY, REFER, MESSAGE, OPTIONS, INFO, SUBSCRIBE',
-    'Allow-Events': 'presence, kpml, talk'
-  }, '')
-}
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const sendReply = function (code, reason) { return KSR.sl.send_reply(code, reason) }
 const reply404 = function () { return slSendReply(404, 'Not found') }
@@ -105,12 +94,6 @@ const isUndefined = function (data) { return data === undefined }
 const isValidUsername = function (username) { return !!(/^s[0-9]{11}$/.exec(username)) }
 const isValidRegisteringContact = function (contact) { return isValidUsername(getUsernameFromContact(contact)) }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
-const isTheTimingToDeleteFromRegmap = function (contacts, sipFullUrl, isContactExpired) {
-  if (isContactExpired) { return !contacts || (contacts && contacts.length === 0) }
-  return  contacts &&
-          contacts.length === 1 &&
-          contacts.filter(function (c) { return c.Address === sipFullUrl }).length === 1
-}
 const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
   if (rtn < 0) return null
@@ -162,67 +145,48 @@ const getRemovingTargetContact = function (username, contacts) {
   })
   return removingTargetContact
 }
-const removeNotFreshOneContactWhenOverMaxContact = function (username) {
+const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
+  const username = getUsernameFromContact(contact)
+  if (!username) { info('Failed to get username from contact.'); return false; }
   const contacts = getContactsByAor(username)
   const addressOfRemovingTargetContact = getRemovingTargetContact(username, contacts).Address
-  if (isUndefined(addressOfRemovingTargetContact)) return contacts
+  if (isUndefined(addressOfRemovingTargetContact)) return
   info('Try to delete contact(' + addressOfRemovingTargetContact + ')')
   if (unregister('location', addressOfRemovingTargetContact) > 0) {
     info('Succeeded to unregister a contact(' + addressOfRemovingTargetContact + ')')
   } else {
     info('Failed to unregister a contact(' + addressOfRemovingTargetContact + ')')
   }
-  const dstUriFromRegmapForRemoving = getFromRegmap(username)
-  if (isNull(dstUriFromRegmapForRemoving)) return contacts
-  // TODO 5. request UNREGISTER to this dstUri
-  return contacts
 }
-const getCorrectDstUriWithSettingRegmapRecord = function (username, contact, contacts) {
-  const dstUriFromRegmap = getDstUriFromRegMap(username)
-  var dstUri = ''
-  if (!isNull(dstUriFromRegmap)) {
-    info('A saved Dst-URI(' + dstUriFromRegmap + ') was found in regmap for an AOR(' + username + ').')
-    info('Use [' + dstUriFromRegmap + '] as Dst-URI to dispatch now.')
-    dstUri = dstUriFromRegmap
-  } else {
-    info('No saved Dst-URI was found in regmap for an AOR(' + username + ').')
-    info('Select a Dst-URI with auto-select-system of dispatcher.')
-    if (!routeSelectDst()) return false
-    dstUri = getPv('du')
-    info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
-    setToRegmap(username, dstUri)
+const selectDst = function () {
+  info('Select a Dst-URI with auto-select-system of dispatcher.')
+  if (!routeSelectDst()) return ''
+  dstUri = getPv('du')
+  info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
+  return dstUri
+}
+const getSelectedDstUri = function (username, isStickyByAor) {
+  if (!username) return ''
+  if (!isStickyByAor) return selectDst()
+  else {
+    const dstUriFromRegmap = getDstUriFromRegMap(username)
+    var dstUri = ''
+    if (!isNull(dstUriFromRegmap)) {
+      info('A saved Dst-URI(' + dstUriFromRegmap + ') was found in regmap for an AOR(' + username + ').')
+      info('Use [' + dstUriFromRegmap + '] as Dst-URI to dispatch now.')
+      dstUri = dstUriFromRegmap
+      setPv('du', dstUri)
+    } else {
+      info('No saved Dst-URI was found in regmap for an AOR(' + username + ').')
+      dstUri = selectDst()
+      if (dstUri) setToRegmap(username, dstUri)
+    }
+    return dstUri
   }
-  return dstUri
-}
-const getDstUriToRegister = function (contact) {
-  const username = getUsernameFromContact(contact)
-  if (!username) { info('Failed to get username from contact.'); return false; }
-  const contacts = removeNotFreshOneContactWhenOverMaxContact(username)
-  const dstUri = getCorrectDstUriWithSettingRegmapRecord(username, contact, contacts)
-  if (!dstUri) { info('Failed to get any Dst-URI to dispatch.'); return false; }
-  info('Now we decided to use [' + dstUri + '] as Dst-URI to dispatch.')
-  return dstUri
-}
-const getDstUriToUnRegister = function (contact) {
-  const username = getUsernameFromContact(contact)
-  if (!username) { info('Failed to get username from contact.'); return false; }
-  const dstUri = getDstUriFromRegMap(username)
-  if (!dstUri) { info('Failed to get any Dst-URI to send Un-REGISTER.'); return false; }
-  info('Now we decided to use [' + dstUri + '] as Dst-URI to send Un-REGISTER.')
-  return { dstUri, username }
-}
-const tryToCleanRegmap = function (username, contact, isContactExpired) {
-  const contacts = getContactsByAor(username)
-  const sipFullUrl = getSipFullUrlFromContact(contact)
-  if (isTheTimingToDeleteFromRegmap(contacts, sipFullUrl, isContactExpired)) delFromRegmap(username)
 }
 const saveToRegister = function (contact) {
-  // TODO 10. saveしてdispatch先（dstUri）へrequest
-  sendRegister()
-
   info('Try to register a contact: ' + contact)
-  if (saveWithoutReply('location') < 0) slReplyError()
-  regSendReply()
+  if (saveWithReply('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
 }
 const saveToUnRegister = function (contact) {
@@ -283,12 +247,13 @@ const routeWithinDlg = function () {
   return false
 }
 const routeAuth = function () {
-  if (KSR.is_REGISTER() || isMyselfFuri()) {
-    const fhost = KSR.kx.gete_fhost()
-    if (KSR.auth_db.auth_check(fhost, "subscriber", 1) < 0) { KSR.auth.auth_challenge(fhost, 0); return false; }
+  if (KSR.is_REGISTER()) {
+    if (KSR.auth_db.auth_check(AUTH_COMMON_DOMAIN, "subscriber", 1) < 0) {
+      KSR.auth.auth_challenge(AUTH_COMMON_DOMAIN, 0)
+      return false
+    }
     if (!KSR.is_method_in("RP")) KSR.auth.consume_credentials()
   }
-  if (!isMyselfFuri() && !isMyselfRuri()) { slSendReply(403, 'Not relaying'); return false; }
   return true
 }
 const routeInvite = function () {
@@ -309,18 +274,12 @@ const routeRegisterEntry = function () {
 }
 const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
-  const dstUri = getDstUriToRegister(contact)
-  if (!dstUri) { reply404(); return false; }
+  removeNotFreshOneContactWhenOverMaxContact(contact)
   saveToRegister(contact)
   return false
 }
 const routeUnregister = function (contact) {
   info('Got Un-REGISTER req with contact(' + contact + ')')
-  const data = getDstUriToUnRegister(contact)
-  if (data.dstUri) {
-    // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
-    tryToCleanRegmap(data.username, contact, false)
-  }
   saveToUnRegister(contact)
   return false
 }
@@ -363,11 +322,6 @@ const onContactExpired = function () {
   const contactAddr = getPv('ulc(exp=>addr)')
   const contact = '<' + contactAddr + '>'
   info('A contact(' + contact + ') was expired.')
-  const data = getDstUriToUnRegister(contact)
-  if (data.dstUri) {
-    // TODO UNREGISTER 2. dstUriにUn-REGISTERのrequest
-    tryToCleanRegmap(data.username, contact, true)
-  }
 }
 /********************************
  * Event Handlers end
