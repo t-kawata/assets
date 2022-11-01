@@ -6,6 +6,7 @@ const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
 const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
+const DEFAULT_STICKY_EXPIRE = 86400
 const JSDT_DEBUG = true
 
 /**
@@ -24,33 +25,35 @@ const setPv = function (key, value) {
   }
   return rtn
 }
-const setToHtable = function (table, key, value) {
+const setToHtable = function (table, key, value, expire) {
   var rtn = 0
   switch (typeof value) {
-    case 'number': rtn = KSR.htable.sht_seti(table, key, value); break;
-    case 'string': rtn = KSR.htable.sht_sets(table, key, value); break;
-    default: rtn = KSR.htable.sht_sets(table, key, JSON.stringify(value)); break;
+    case 'number': rtn = KSR.htable.sht_setxi(table, key, value, expire); break;
+    case 'string': rtn = KSR.htable.sht_setxs(table, key, value, expire); break;
+    default: rtn = KSR.htable.sht_setxs(table, key, JSON.stringify(value), expire); break;
   }
   return rtn
 }
 const setFlag = function (flg) { return KSR.setflag(flg) }
-const setToRegmap = function (key, value) {
-  info('Set a regmap record(' + key + ': ' + value + ')')
-  return setToHtable('regmap', key, value)
+const setToSticky = function (key, value, expire) {
+  const expireNum = Number(expire)
+  const expireSeconds = expireNum > 0 ? expireNum : DEFAULT_STICKY_EXPIRE
+  info('Set a sticky record(' + key + ': ' + value + '; expire=' + expireSeconds + ')')
+  return setToHtable('sticky', key, value, expireSeconds)
 }
 const setUacReq = function (key, value) {
   return setPv('uac_req(' + key + ')', value)
 }
 const getPv = function (name) { return KSR.pv.get('$' + name) }
 const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
-const getFromRegmap = function (key) {
-  info('Get a regmap record by key(' + key + ')')
-  return getFromHtable('regmap', key)
+const getFromSticky = function (key) {
+  info('Get a sticky record by key(' + key + ')')
+  return getFromHtable('sticky', key)
 }
 const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
-const delFromRegmap = function (key) {
-  info('Delete a regmap record by key(' + key + ')')
-  return delFromHtable('regmap', key)
+const delFromSticky = function (key) {
+  info('Delete a sticky record by key(' + key + ')')
+  return delFromHtable('sticky', key)
 }
 const sendUacReq = function (method, params, hdrs, body) {
   if (!method) return 0
@@ -169,17 +172,17 @@ const getSelectedDstUri = function (username, isStickyByAor) {
   if (!username) return ''
   if (!isStickyByAor) return selectDst()
   else {
-    const dstUriFromRegmap = getDstUriFromRegMap(username)
+    const dstUriFromSticky = getDstUriFromSticky(username)
     var dstUri = ''
-    if (!isNull(dstUriFromRegmap)) {
-      info('A saved Dst-URI(' + dstUriFromRegmap + ') was found in regmap for an AOR(' + username + ').')
-      info('Use [' + dstUriFromRegmap + '] as Dst-URI to dispatch now.')
-      dstUri = dstUriFromRegmap
+    if (!isNull(dstUriFromSticky)) {
+      info('A saved Dst-URI(' + dstUriFromSticky + ') was found in sticky for an AOR(' + username + ').')
+      info('Use [' + dstUriFromSticky + '] as Dst-URI to dispatch now.')
+      dstUri = dstUriFromSticky
       setPv('du', dstUri)
     } else {
-      info('No saved Dst-URI was found in regmap for an AOR(' + username + ').')
+      info('No saved Dst-URI was found in sticky for an AOR(' + username + ').')
       dstUri = selectDst()
-      if (dstUri) setToRegmap(username, dstUri)
+      if (dstUri) setToSticky(username, dstUri)
     }
     return dstUri
   }
@@ -194,9 +197,9 @@ const saveToUnRegister = function (contact) {
   if (saveWithReply('location') < 0) slReplyError()
   info('Unregistered a contact: ' + contact)
 }
-const getDstUriFromRegMap = function (username) {
-  info('Try to search a saved Dst-URI in regmap for an AOR(' + username + ')')
-  return getFromRegmap(username)
+const getDstUriFromSticky = function (username) {
+  info('Try to search a saved Dst-URI in sticky for an AOR(' + username + ')')
+  return getFromSticky(username)
 }
 
 /********************************
