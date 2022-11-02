@@ -10,6 +10,8 @@ const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
 const STICKY_STATUS_KEY = 'STICKY_STATUS'
+const USERNAME_FORMAT = /^s[0-9]{11}$/
+
 const JSDT_DEBUG = true
 
 /**
@@ -101,7 +103,7 @@ const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
 const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
-const isValidUsername = function (username) { return !!(/^s[0-9]{11}$/.exec(username)) }
+const isValidUsername = function (username) { return !!(USERNAME_FORMAT.exec(username)) }
 const isValidRegisteringContact = function (contact) { return isValidUsername(getUsernameFromContact(contact)) }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
 const execRPC = function (method, paramsArr) {
