@@ -6,8 +6,8 @@ const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
 const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
-const DEFAULT_STICKY_EXPIRE = 86400
-const IS_STICKY_BY_AOR = true
+const DEFAULT_STICKY_EXPIRE = 86400 // 24h
+const STICKY_STATUS_KEY = 'STICKY_STATUS'
 const JSDT_DEBUG = true
 
 /**
@@ -50,6 +50,10 @@ const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, k
 const getFromSticky = function (key) {
   info('Get a sticky record by key(' + key + ')')
   return getFromHtable('sticky', key)
+}
+const getStickyStatus = function () {
+  const status = getFromHtable('sticky', STICKY_STATUS_KEY)
+  return status ? Number(status) : 0
 }
 const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
 const delFromSticky = function (key) {
@@ -169,8 +173,8 @@ const _selectDst = function () {
   info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
   return dstUri
 }
-const selectDstUri = function (username, expire) {
-  if (!username || !IS_STICKY_BY_AOR) return _selectDst()
+const selectDstUri = function (username, isStickyByAor, expire) {
+  if (!username || !isStickyByAor) return _selectDst()
   else {
     const dstUriFromSticky = getDstUriFromSticky(username)
     var dstUri = ''
@@ -288,8 +292,10 @@ const routeUnregister = function (contact) {
 }
 const routeDispatch = function () {
   const username = getUsernameFromContact(getPv('ct'))
-  if (!selectDstUri(username)) return false
-  if (!IS_STICKY_BY_AOR) tOnFailure('failureRouteRtfDispatch')
+  if (!username || !isValidUsername(username)) { reply404(); return false; }
+  const isStickyByAor = getStickyStatus() > 0
+  if (!selectDstUri(username, isStickyByAor)) return false
+  if (!isStickyByAor) tOnFailure('failureRouteRtfDispatch')
   return routeRelay()
 }
 const routeRelay = function () {
