@@ -161,16 +161,15 @@ const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
     info('Failed to unregister a contact(' + addressOfRemovingTargetContact + ')')
   }
 }
-const selectDst = function () {
+const _selectDst = function () {
   info('Select a Dst-URI with auto-select-system of dispatcher.')
-  if (!routeSelectDst()) return ''
+  if (dsSelectDst(1, 4) < 0) { sendReply(404, 'No destination'); return ''; }
   dstUri = getPv('du')
   info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
   return dstUri
 }
-const getSelectedDstUri = function (username, isStickyByAor) {
-  if (!username) return ''
-  if (!isStickyByAor) return selectDst()
+const selectDstUri = function (username, isStickyByAor, expire) {
+  if (!username || !isStickyByAor) return _selectDst()
   else {
     const dstUriFromSticky = getDstUriFromSticky(username)
     var dstUri = ''
@@ -181,8 +180,8 @@ const getSelectedDstUri = function (username, isStickyByAor) {
       setPv('du', dstUri)
     } else {
       info('No saved Dst-URI was found in sticky for an AOR(' + username + ').')
-      dstUri = selectDst()
-      if (dstUri) setToSticky(username, dstUri)
+      dstUri = _selectDst()
+      if (dstUri) setToSticky(username, dstUri, expire)
     }
     return dstUri
   }
@@ -287,13 +286,9 @@ const routeUnregister = function (contact) {
   return false
 }
 const routeDispatch = function () {
-  if (!routeSelectDst()) return false
+  if (!selectDstUri()) return false
   tOnFailure('failureRouteRtfDispatch')
   return routeRelay()
-}
-const routeSelectDst = function () {
-  if (dsSelectDst(1, 4) < 0) { sendReply(404, 'No destination'); return false; }
-  return true
 }
 const routeRelay = function () {
   if (tRelay() < 0) slReplyError()
