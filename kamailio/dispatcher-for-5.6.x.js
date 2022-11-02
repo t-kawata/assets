@@ -7,6 +7,7 @@ const FLT_ACCFAILED = 3
 const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400
+const IS_STICKY_BY_AOR = true
 const JSDT_DEBUG = true
 
 /**
@@ -168,8 +169,8 @@ const _selectDst = function () {
   info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
   return dstUri
 }
-const selectDstUri = function (username, isStickyByAor, expire) {
-  if (!username || !isStickyByAor) return _selectDst()
+const selectDstUri = function (username, expire) {
+  if (!username || !IS_STICKY_BY_AOR) return _selectDst()
   else {
     const dstUriFromSticky = getDstUriFromSticky(username)
     var dstUri = ''
@@ -286,8 +287,9 @@ const routeUnregister = function (contact) {
   return false
 }
 const routeDispatch = function () {
-  if (!selectDstUri()) return false
-  tOnFailure('failureRouteRtfDispatch')
+  const username = getUsernameFromContact(getPv('ct'))
+  if (!selectDstUri(username)) return false
+  if (!IS_STICKY_BY_AOR) tOnFailure('failureRouteRtfDispatch')
   return routeRelay()
 }
 const routeRelay = function () {
