@@ -260,7 +260,11 @@ const routeWithinDlg = function () {
 const routeAuth = function () {
   if (KSR.is_REGISTER()) {
     const contact = getPv('ct')
-    if (!contact || !isValidUsernameContact(contact)) { reply404(); return false; }
+    if (!contact || !isValidUsernameContact(contact)) {
+      info('Invalid format username contact!! (' + contact + ')')
+      reply404();
+      return false;
+    }
     if (KSR.auth_db.auth_check(AUTH_COMMON_DOMAIN, "subscriber", 1) < 0) {
       KSR.auth.auth_challenge(AUTH_COMMON_DOMAIN, 0)
       return false
