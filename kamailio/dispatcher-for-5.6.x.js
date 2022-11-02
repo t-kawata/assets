@@ -104,7 +104,7 @@ const tBranchReplied = function () { return KSR.tm.t_branch_replied() }
 const isNull = function (data) { return data === null }
 const isUndefined = function (data) { return data === undefined }
 const isValidUsername = function (username) { return !!(USERNAME_FORMAT.exec(username)) }
-const isValidRegisteringContact = function (contact) { return isValidUsername(getUsernameFromContact(contact)) }
+const isValidUsernameContact = function (contact) { return isValidUsername(getUsernameFromContact(contact)) }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
 const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
@@ -259,6 +259,8 @@ const routeWithinDlg = function () {
 }
 const routeAuth = function () {
   if (KSR.is_REGISTER()) {
+    const contact = getPv('ct')
+    if (!contact || !isValidUsernameContact(contact)) { reply404(); return false; }
     if (KSR.auth_db.auth_check(AUTH_COMMON_DOMAIN, "subscriber", 1) < 0) {
       KSR.auth.auth_challenge(AUTH_COMMON_DOMAIN, 0)
       return false
@@ -279,7 +281,6 @@ const routePresence = function () {
 const routeRegisterEntry = function () {
   if (!KSR.is_REGISTER()) return true
   const contact = getPv('ct')
-  if (!contact || !isValidRegisteringContact(contact)) { reply404(); return false; }
   if (!contact.match(/expires=0/)) return routeRegister(contact)
   else return routeUnregister(contact)
 }
