@@ -4,6 +4,8 @@
 const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
+const FLB_NATB = 6
+const FLB_NATSIPPING = 7
 const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
@@ -52,7 +54,7 @@ const getFromSticky = function (key) {
   return getFromHtable('sticky', key)
 }
 const getStickyStatus = function () {
-  const status = getFromHtable('sticky', STICKY_STATUS_KEY)
+  const status = getFromHtable('settings', STICKY_STATUS_KEY)
   return status ? Number(status) : 0
 }
 const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
