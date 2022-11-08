@@ -257,6 +257,18 @@ const routeNatDetect = function () {
   return true
 }
 const routeNatManage = function () {
+  const rr = getPv('hdr(Record-Route)')
+  if (rr) {
+    info('----------------------------')
+    info(routeNatManage)
+    info('----------------------------')
+    info(rr)
+    const rrr = rr.replace('10.1.10.140', '44.225.154.71')
+    info('----------------------------')
+    info(rrr)
+    info('----------------------------')
+    setPv('hdr(Record-Route)', rrr)
+  }
   if (isRequest() > 0 && hasToTag() > 0 && checkRouteParam('nat=yes') > 0) setbFlag(FLB_NATB)
   if (!(isFlagSet(FLT_NATS) || isbFlagSet(FLB_NATB))) return
   if (natUacTest(8) > 0) rtpengineManage('SIP-source-address replace-origin replace-session-connection')
@@ -417,11 +429,4 @@ const ksr_request_route = function () {
 /**
  * Response Entry Point
  */
-const ksr_reply_route = function () {
-  const rr = getPv('hdr(Record-Route)')
-  if (rr) {
-    info('----------------------------')
-    info(rr)
-    info('----------------------------')
-  }
-}
+const ksr_reply_route = function () {}
