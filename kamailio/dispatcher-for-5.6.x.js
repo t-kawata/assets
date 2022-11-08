@@ -413,3 +413,15 @@ const ksr_request_route = function () {
 
   if (!routeDispatch()) return
 }
+
+/**
+ * Response Entry Point
+ */
+const ksr_reply_route = function () {
+  const rr = getPv('hdr(Record-Route)')
+  if (rr) {
+    info('----------------------------')
+    info(rr)
+    info('----------------------------')
+  }
+}
