@@ -278,6 +278,19 @@ const routeAck = function () {
   if (!KSR.is_ACK()) return true
   if (tPreCheckTrans() > 0) { tCheckTrans(); return false; }
   tCheckTrans()
+  if (!(dsIsFromLists() > 0)) {
+    info('=================================')
+    info('Is ACK from client!!')
+    info('=================================')
+    const route = KSR.hdr.get('Route')
+    if (route) {
+      info('=================================')
+      info('Org Route is: ' + route)
+      info('=================================')
+      const lastRoute = route.replace('44.225.154.71', '10.1.10.4')
+      KSR.hdr.rmappend('Route', "Route: " + lastRoute + "\r\n")
+    }
+  }
   return true
 }
 const routeWithinDlg = function () {
