@@ -4,6 +4,7 @@
 const FLT_ACC = 1
 const FLT_ACCMISSED = 2
 const FLT_ACCFAILED = 3
+const FLT_NATS = 5
 const FLB_NATB = 6
 const FLB_NATSIPPING = 7
 const MAX_CONTACTS = 5
@@ -40,6 +41,7 @@ const setToHtable = function (table, key, value, expire) {
   return rtn
 }
 const setFlag = function (flg) { return KSR.setflag(flg) }
+const setbFlag = function (flg) { return KSR.setbflag(flg) }
 const setToSticky = function (key, value, expire) {
   const expireNum = Number(expire)
   const expireSeconds = expireNum > 0 ? expireNum : DEFAULT_STICKY_EXPIRE
@@ -85,6 +87,23 @@ const hasToTag = function () { return KSR.siputils.has_totag() }
 const looseRoute = function () { return KSR.rr.loose_route() }
 const isMyselfRuri = function () { return KSR.is_myself_ruri() }
 const isMyselfFuri = function () { return KSR.is_myself_furi() }
+const isFlagSet = function (flg) { return KSR.isflagset(flg) }
+const isbFlagSet = function (flg) { return KSR.isbflagset(flg) }
+const isRequest = function () { return KSR.siputils.is_request() }
+const isReply = function () { return KSR.siputils.is_reply() }
+const isMethodIn = function (methods) { return KSR.is_method_in(methods) }
+const isFirstHop = function () { return KSR.siputils.is_first_hop() }
+const checkRouteParam = function (str) { return KSR.rr.check_route_param(str) }
+const natUacTest = function (flg) { return KSR.nathelper.nat_uac_test(flg) }
+const fixNatedRegister = function () { return KSR.nathelper.fix_nated_register() }
+const setContactAlias = function () { return KSR.nathelper.set_contact_alias() }
+const rtpengineManage = function (flgs) { return KSR.rtpengine.rtpengine_manage(flgs) }
+const tIsSet = function (target) { return KSR.tm.t_is_set(target) }
+const tIsBranchRoute = function () { return KSR.tmx.t_is_branch_route() }
+const addRrParam = function (param) { return KSR.rr.add_rr_param(param) }
+const setForwardNoConnect = function () { return KSR.set_forward_no_connect() }
+const authCheck = function () { return KSR.auth_db.auth_check(AUTH_COMMON_DOMAIN, 'subscriber', 1) }
+const authChallenge = function () { return KSR.auth.auth_challenge(AUTH_COMMON_DOMAIN, 0) }
 const removeHf = function (headerName) { return KSR.textops.remove_hf(headerName) }
 const recordRoute = function () { return KSR.rr.record_route() }
 const save = function (table, flags) { return KSR.registrar.save(table, flags) }
@@ -97,6 +116,8 @@ const dsNextDst = function () { return KSR.dispatcher.ds_next_dst() }
 const tRelay = function () { return KSR.tm.t_relay() }
 const slReplyError = function () { return KSR.sl.sl_reply_error() }
 const tOnFailure = function (failureMethodName) { return KSR.tm.t_on_failure(failureMethodName) }
+const tOnBranch = function (branchMethodName) { return KSR.tm.t_on_branch(branchMethodName) }
+const tOnReply = function (replyMethodName) { return KSR.tm.t_on_reply(replyMethodName) }
 const tIsCanceled = function () { return KSR.tm.t_is_canceled() }
 const tCheckStatus = function (replyCode) { return KSR.tm.t_check_status(replyCode) }
 const tBranchTimeout = function () { return KSR.tm.t_branch_timeout() }
@@ -213,6 +234,10 @@ const getDstUriFromSticky = function (username) {
 /********************************
  * Branch Routes bgn
  ********************************/
+const routeKDMQ = function () {
+  if (KSR.is_KDMQ()) { KSR.dmq.handle_message(); return false; }
+  return true
+}
 const routeReqInit = function () {
   if (!KSR.maxfwd.process_maxfwd(10)) { slSendReply(483, 'Too Many Hops'); return false; }
   if (!KSR.sanity.sanity_check(1511, 7)) {
@@ -223,9 +248,25 @@ const routeReqInit = function () {
   }
   return true
 }
-const routeKDMQ = function () {
-  if (KSR.is_KDMQ()) { KSR.dmq.handle_message(); return false; }
+const routeNatDetect = function () {
+  KSR.force_rport()
+  if (natUacTest(19) <= 0) return true
+  if (KSR.is_REGISTER()) fixNatedRegister()
+  else if (isFirstHop() > 0) setContactAlias()
+  setFlag(FLT_NATS)
   return true
+}
+const routeNatManage = function () {
+  if (isRequest() > 0 && hasToTag() > 0 && checkRouteParam('nat=yes') > 0) setbFlag(FLB_NATB)
+  if (!(isFlagSet(FLT_NATS) || isbFlagSet(FLB_NATB))) return
+  if (natUacTest(8) > 0) rtpengineManage('SIP-source-address replace-origin replace-session-connection')
+  else rtpengineManage('replace-origin replace-session-connection')
+  if (isRequest() > 0 && !hasToTag() && tIsBranchRoute() > 0) addRrParam(';nat=yes')
+  if (isReply() > 0 && isbFlagSet(FLB_NATB) && isFirstHop() > 0) setContactAlias()
+  if (isbFlagSet(FLB_NATB) && isRequest() > 0 && hasToTag() > 0) setForwardNoConnect()
+}
+const routeDlgUri = function () {
+  if (!KSR.isdsturiset()) KSR.nathelper.handle_ruri_alias()
 }
 const routeCancel = function () {
   if (!KSR.is_CANCEL()) return true
@@ -241,10 +282,9 @@ const routeAck = function () {
 const routeWithinDlg = function () {
   if (hasToTag() < 0) return true
   if (looseRoute() > 0) {
-    if (KSR.is_BYE()) {
-      setFlag(FLT_ACC)
-      setFlag(FLT_ACCFAILED)
-    }
+    routeDlgUri()
+    if (KSR.is_BYE()) { setFlag(FLT_ACC); setFlag(FLT_ACCFAILED); }
+    else if (KSR.is_ACK()) routeNatManage()
     return routeRelay()
   }
   if (KSR.is_SUBSCRIBE() && isMyselfRuri()) {
@@ -262,14 +302,11 @@ const routeAuth = function () {
     const contact = getPv('ct')
     if (!contact || !isValidUsernameContact(contact)) {
       info('Invalid format username contact!! (' + contact + ')')
-      reply404();
-      return false;
-    }
-    if (KSR.auth_db.auth_check(AUTH_COMMON_DOMAIN, "subscriber", 1) < 0) {
-      KSR.auth.auth_challenge(AUTH_COMMON_DOMAIN, 0)
+      reply404()
       return false
     }
-    if (!KSR.is_method_in("RP")) KSR.auth.consume_credentials()
+    if (authCheck() < 0) { authChallenge(); return false; }
+    if (!isMethodIn('RP')) KSR.auth.consume_credentials()
   }
   return true
 }
@@ -284,6 +321,7 @@ const routePresence = function () {
 }
 const routeRegisterEntry = function () {
   if (!KSR.is_REGISTER()) return true
+  if (isFlagSet(FLT_NATS)) { setbFlag(FLB_NATB); setbFlag(FLB_NATSIPPING); }
   const contact = getPv('ct')
   if (!contact.match(/expires=0/)) return routeRegister(contact)
   else return routeUnregister(contact)
@@ -304,18 +342,26 @@ const routeDispatch = function () {
   if (!username || !isValidUsername(username)) { reply404(); return false; }
   const isStickyByAor = getStickyStatus() > 0
   if (!selectDstUri(username, isStickyByAor)) return false
-  if (!isStickyByAor) tOnFailure('failureRouteRtfDispatch')
+  if (!isStickyByAor) tOnFailure('onDispatchFailure')
   return routeRelay()
 }
 const routeRelay = function () {
+  if (isMethodIn('IBSU') && tIsSet('branch_route') < 0) tOnBranch('onRelayBranch')
+  if (isMethodIn('ISU') && tIsSet('onreply_route') < 0) tOnReply('onRelayReply')
   if (tRelay() < 0) slReplyError()
   return false
 }
-const failureRouteRtfDispatch = function () {
+const onRelayBranch = function () { routeNatManage() }
+const onRelayReply = function () {
+  const status = KSR.kx.gets_status()
+  if (status > 100 && status <= 299) routeNatManage()
+}
+const onDispatchFailure = function () {
+  if (KSR.is_INVITE()) routeNatManage()
   if (tIsCanceled() > 0) return
   if (tCheckStatus('500') || (tBranchTimeout() > 0 && !(tBranchReplied() > 0))) {
     if (dsNextDst() > 0) {
-      tOnFailure('failureRouteRtfDispatch')
+      tOnFailure('onDispatchFailure')
       return routeRelay()
     }
   }
@@ -346,8 +392,9 @@ const onContactExpired = function () {
  * Request Entry Point
  */
 const ksr_request_route = function () {
-  if (!routeReqInit()) return
   if (!routeKDMQ()) return
+  if (!routeReqInit()) return
+  if (!routeNatDetect()) return
   if (!routeCancel()) return
   if (!routeAck()) return
   if (!routeWithinDlg()) return
