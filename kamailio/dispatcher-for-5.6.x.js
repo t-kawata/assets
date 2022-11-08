@@ -113,6 +113,7 @@ const regSendReply = function () { return KSR.registrar.reg_send_reply() }
 const unregister = function (table, uri) { return KSR.registrar.unregister(table, uri) }
 const dsSelectDst = function (set, alg) { return KSR.dispatcher.ds_select_dst(set, alg) }
 const dsNextDst = function () { return KSR.dispatcher.ds_next_dst() }
+const dsIsFromLists = function () { return KSR.dispatcher.ds_is_from_lists() }
 const tRelay = function () { return KSR.tm.t_relay() }
 const slReplyError = function () { return KSR.sl.sl_reply_error() }
 const tOnFailure = function (failureMethodName) { return KSR.tm.t_on_failure(failureMethodName) }
@@ -257,18 +258,6 @@ const routeNatDetect = function () {
   return true
 }
 const routeNatManage = function () {
-  const rr = getPv('hdr(Record-Route)')
-  if (rr) {
-    info('----------------------------')
-    info(routeNatManage)
-    info('----------------------------')
-    info(rr)
-    const rrr = rr.replace('10.1.10.140', '44.225.154.71')
-    info('----------------------------')
-    info(rrr)
-    info('----------------------------')
-    setPv('hdr(Record-Route)', rrr)
-  }
   if (isRequest() > 0 && hasToTag() > 0 && checkRouteParam('nat=yes') > 0) setbFlag(FLB_NATB)
   if (!(isFlagSet(FLT_NATS) || isbFlagSet(FLB_NATB))) return
   if (natUacTest(8) > 0) rtpengineManage('SIP-source-address replace-origin replace-session-connection')
@@ -366,7 +355,31 @@ const routeRelay = function () {
 const onRelayBranch = function () { routeNatManage() }
 const onRelayReply = function () {
   const status = KSR.kx.gets_status()
-  if (status > 100 && status <= 299) routeNatManage()
+  if (status > 100 && status <= 299) {
+    if (KSR.is_INVITE()) {
+      info('=================================')
+      info('Is INVITE response!!')
+      info('=================================')
+      if (dsIsFromLists() > 0) {
+        info('=================================')
+        info('Is From dispatcher lists!!')
+        info('=================================')
+        const rr = getPv('hdr(Record-Route)')
+        if (rr) {
+          info('=================================')
+          info('Org Record-Route is: ' + rr)
+          info('=================================')
+          const rrr = rr.replace('10.1.10.140', '44.225.154.71')
+          info('=================================')
+          info('Replaced Record-Route is: ' + rrr)
+          info('=================================')
+          KSR.textops.remove_hf('Record-Route')
+          KSR.hdr.rmappend('Record-Route', "Record-Route: " + rrr + "\r\n")
+        }
+      }
+    }
+    routeNatManage()
+  }
 }
 const onDispatchFailure = function () {
   if (KSR.is_INVITE()) routeNatManage()
