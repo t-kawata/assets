@@ -278,20 +278,6 @@ const routeAck = function () {
   if (!KSR.is_ACK()) return true
   if (tPreCheckTrans() > 0) { tCheckTrans(); return false; }
   tCheckTrans()
-  if (!(dsIsFromLists() > 0)) {
-    info('=================================')
-    info('Next Hop Uri: ' + getPv('nh(u)'))
-    info('Is ACK from client!!')
-    info('=================================')
-    const route = KSR.hdr.get('Route')
-    if (route) {
-      info('=================================')
-      info('Org Route is: ' + route)
-      info('=================================')
-      const lastRoute = route.replace('44.225.154.71', '10.1.10.4')
-      KSR.hdr.rmappend('Route', "Route: " + lastRoute + "\r\n")
-    }
-  }
   return true
 }
 const routeWithinDlg = function () {
@@ -363,6 +349,23 @@ const routeDispatch = function () {
 const routeRelay = function () {
   if (isMethodIn('IBSU') && tIsSet('branch_route') < 0) tOnBranch('onRelayBranch')
   if (isMethodIn('ISU') && tIsSet('onreply_route') < 0) tOnReply('onRelayReply')
+  if (isMethodIn('AB')) {
+    if (!(dsIsFromLists() > 0)) {
+      info('=================================')
+      info('Is ACK from client!!')
+      info('=================================')
+      const route = KSR.hdr.get('Route')
+      if (route) {
+        info('=================================')
+        info('Org Route is: ' + route)
+        info('=================================')
+        const lastRoute = route.replace('44.225.154.71', '10.1.10.4')
+        KSR.hdr.rmappend('Route', "Route: " + lastRoute + "\r\n")
+        KSR.tm.t_relay_to_proto_addr('udp', '10.1.10.4', 5061)
+        return false
+      }
+    }
+  }
   if (tRelay() < 0) slReplyError()
   return false
 }
