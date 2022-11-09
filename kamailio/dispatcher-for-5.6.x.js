@@ -280,6 +280,7 @@ const routeAck = function () {
   tCheckTrans()
   if (!(dsIsFromLists() > 0)) {
     info('=================================')
+    info('Next Hop Uri: ' + getPv('nh(u)'))
     info('Is ACK from client!!')
     info('=================================')
     const route = KSR.hdr.get('Route')
