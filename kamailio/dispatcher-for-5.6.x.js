@@ -11,6 +11,7 @@ const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
 const STICKY_STATUS_KEY = 'STICKY_STATUS'
+const DST_URI_AVP_KEY = 'DST_URI'
 const USERNAME_FORMAT = /^s[0-9]{11}$/
 
 const JSDT_DEBUG = true
@@ -28,6 +29,15 @@ const setPv = function (key, value) {
     case 'number': rtn = KSR.pv.seti(lastKey, value); break;
     case 'string': rtn = KSR.pv.sets(lastKey, value); break;
     default: rtn = KSR.pv.sets(lastKey, JSON.stringify(value)); break;
+  }
+  return rtn
+}
+const setAvp = function (key, value) {
+  var rtn = 0
+  switch (typeof value) {
+    case 'number': rtn = KSR.pvx.avp_seti(key, value); break;
+    case 'string': rtn = KSR.pvx.avp_sets(key, value); break;
+    default: rtn = KSR.pvx.avp_sets(key, JSON.stringify(value)); break;
   }
   return rtn
 }
@@ -51,7 +61,8 @@ const setToSticky = function (key, value, expire) {
 const setUacReq = function (key, value) {
   return setPv('uac_req(' + key + ')', value)
 }
-const getPv = function (name) { return KSR.pv.get('$' + name) }
+const getPv = function (key) { return KSR.pv.get('$' + key) }
+const getAvp = function (key) { return KSR.pvx.avp_get(key) }
 const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
 const getFromSticky = function (key) {
   info('Get a sticky record by key(' + key + ')')
@@ -200,10 +211,12 @@ const _selectDst = function () {
   return dstUri
 }
 const selectDstUri = function (username, isStickyByAor, expire) {
-  if (!username || !isStickyByAor) return _selectDst()
+  const dstUriAvp = getAvp(DST_URI_AVP_KEY)
+  if (dstUriAvp) return dstUriAvp
+  var dstUri = ''
+  if (!username || !isStickyByAor) dstUri = _selectDst()
   else {
     const dstUriFromSticky = getDstUriFromSticky(username)
-    var dstUri = ''
     if (!isNull(dstUriFromSticky)) {
       info('A saved Dst-URI(' + dstUriFromSticky + ') was found in sticky for an AOR(' + username + ').')
       info('Use [' + dstUriFromSticky + '] as Dst-URI to dispatch now.')
@@ -214,8 +227,9 @@ const selectDstUri = function (username, isStickyByAor, expire) {
       dstUri = _selectDst()
       if (dstUri) setToSticky(username, dstUri, expire)
     }
-    return dstUri
   }
+  if (dstUri) setAvp(DST_URI_AVP_KEY, dstUri)
+  return dstUri
 }
 const saveToRegister = function (contact) {
   info('Try to register a contact: ' + contact)
@@ -350,20 +364,14 @@ const routeRelay = function () {
   if (isMethodIn('IBSU') && tIsSet('branch_route') < 0) tOnBranch('onRelayBranch')
   if (isMethodIn('ISU') && tIsSet('onreply_route') < 0) tOnReply('onRelayReply')
   if (isMethodIn('AB')) {
-    if (!(dsIsFromLists() > 0)) {
+    if (!(dsIsFromLists() > 0) && KSR.hdr.is_present('Route') > 0) {
+      const dstUri = getAvp(DST_URI_AVP_KEY)
       info('=================================')
-      info('Is ACK from client!!')
+      info('DstUri from AVP is: ' + dstUri)
       info('=================================')
-      const route = KSR.hdr.get('Route')
-      if (route) {
-        info('=================================')
-        info('Org Route is: ' + route)
-        info('=================================')
-        const lastRoute = route.replace('44.225.154.71', '10.1.10.4')
-        KSR.hdr.rmappend('Route', "Route: " + lastRoute + "\r\n")
-        KSR.tm.t_relay_to_proto_addr('udp', '10.1.10.4', 5061)
-        return false
-      }
+      KSR.hdr.remove('Route')
+      KSR.tm.t_relay_to_proto_addr('udp', '10.1.10.4', 5061)
+      return false
     }
   }
   if (tRelay() < 0) slReplyError()
