@@ -11,7 +11,6 @@ const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
 const STICKY_STATUS_KEY = 'STICKY_STATUS'
-const DST_URI_AVP_KEY = 'DST_URI'
 const USERNAME_FORMAT = /^s[0-9]{11}$/
 
 const JSDT_DEBUG = true
@@ -211,8 +210,6 @@ const _selectDst = function () {
   return dstUri
 }
 const selectDstUri = function (username, isStickyByAor, expire) {
-  const dstUriAvp = getAvp(DST_URI_AVP_KEY)
-  if (dstUriAvp) return dstUriAvp
   var dstUri = ''
   if (!username || !isStickyByAor) dstUri = _selectDst()
   else {
@@ -228,7 +225,6 @@ const selectDstUri = function (username, isStickyByAor, expire) {
       if (dstUri) setToSticky(username, dstUri, expire)
     }
   }
-  if (dstUri) setAvp(DST_URI_AVP_KEY, dstUri)
   return dstUri
 }
 const saveToRegister = function (contact) {
@@ -365,10 +361,6 @@ const routeRelay = function () {
   if (isMethodIn('ISU') && tIsSet('onreply_route') < 0) tOnReply('onRelayReply')
   if (isMethodIn('AB')) {
     if (!(dsIsFromLists() > 0) && KSR.hdr.is_present('Route') > 0) {
-      const dstUri = getAvp(DST_URI_AVP_KEY)
-      info('=================================')
-      info('DstUri from AVP is: ' + dstUri)
-      info('=================================')
       KSR.hdr.remove('Route')
       KSR.tm.t_relay_to_proto_addr('udp', '10.1.10.4', 5061)
       return false
