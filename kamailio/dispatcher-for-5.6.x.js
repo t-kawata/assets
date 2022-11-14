@@ -10,6 +10,7 @@ const FLB_NATSIPPING = 7
 const MAX_CONTACTS = 5
 const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
+const DEFAULT_DSTMAP_EXPIRE = 3600 // 1h
 const STICKY_STATUS_KEY = 'STICKY_STATUS'
 const USERNAME_FORMAT = /^s[0-9]{11}$/
 
@@ -42,10 +43,19 @@ const setAvp = function (key, value) {
 }
 const setToHtable = function (table, key, value, expire) {
   var rtn = 0
-  switch (typeof value) {
-    case 'number': rtn = KSR.htable.sht_setxi(table, key, value, expire); break;
-    case 'string': rtn = KSR.htable.sht_setxs(table, key, value, expire); break;
-    default: rtn = KSR.htable.sht_setxs(table, key, JSON.stringify(value), expire); break;
+  const type = typeof value
+  if (isUndefined(expire) || isNull(expire)) {
+    switch (type) {
+      case 'number': rtn = KSR.htable.sht_seti(table, key, value); break;
+      case 'string': rtn = KSR.htable.sht_sets(table, key, value); break;
+      default: rtn = KSR.htable.sht_sets(table, key, JSON.stringify(value)); break;
+    }
+  } else {
+    switch (type) {
+      case 'number': rtn = KSR.htable.sht_setxi(table, key, value, expire); break;
+      case 'string': rtn = KSR.htable.sht_setxs(table, key, value, expire); break;
+      default: rtn = KSR.htable.sht_setxs(table, key, JSON.stringify(value), expire); break;
+    }
   }
   return rtn
 }
@@ -57,15 +67,31 @@ const setToSticky = function (key, value, expire) {
   info('Set a sticky record(' + key + ': ' + value + '; expire=' + expireSeconds + ')')
   return setToHtable('sticky', key, value, expireSeconds)
 }
+const setToDstmap = function (key, value, expire) {
+  const expireNum = Number(expire)
+  const expireSeconds = expireNum > 0 ? expireNum : DEFAULT_DSTMAP_EXPIRE
+  info('Set a dstmap record(' + key + ': ' + value + '; expire=' + expireSeconds + ')')
+  return setToHtable('dstmap', key, value, expireSeconds)
+}
 const setUacReq = function (key, value) {
   return setPv('uac_req(' + key + ')', value)
 }
 const getPv = function (key) { return KSR.pv.get('$' + key) }
 const getAvp = function (key) { return KSR.pvx.avp_get(key) }
+const getHeader = function (hdrName) { return KSR.hdr.get(hdrName) }
+const getCallId = function () { return getHeader('Call-ID') }
 const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
 const getFromSticky = function (key) {
   info('Get a sticky record by key(' + key + ')')
   return getFromHtable('sticky', key)
+}
+const getFromDstmap = function (key) {
+  info('Get a dstmap record by key(' + key + ')')
+  return getFromHtable('dstmap', key)
+}
+const getFromIpmap = function (key) {
+  info('Get a ipmap record by key(' + key + ')')
+  return getFromHtable('ipmap', key)
 }
 const getStickyStatus = function () {
   const status = getFromHtable('settings', STICKY_STATUS_KEY)
@@ -205,26 +231,31 @@ const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
 const _selectDst = function () {
   info('Select a Dst-URI with auto-select-system of dispatcher.')
   if (dsSelectDst(1, 4) < 0) { sendReply(404, 'No destination'); return ''; }
-  dstUri = getPv('du')
-  info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
-  return dstUri
+  return getPv('du')
 }
 const selectDstUri = function (username, isStickyByAor, expire) {
   var dstUri = ''
-  if (!username || !isStickyByAor) dstUri = _selectDst()
-  else {
-    const dstUriFromSticky = getDstUriFromSticky(username)
-    if (!isNull(dstUriFromSticky)) {
-      info('A saved Dst-URI(' + dstUriFromSticky + ') was found in sticky for an AOR(' + username + ').')
-      info('Use [' + dstUriFromSticky + '] as Dst-URI to dispatch now.')
-      dstUri = dstUriFromSticky
-      setPv('du', dstUri)
-    } else {
-      info('No saved Dst-URI was found in sticky for an AOR(' + username + ').')
-      dstUri = _selectDst()
-      if (dstUri) setToSticky(username, dstUri, expire)
+  const callId = getCallId()
+  if (callId) {
+    dstUri = getFromDstmap(callId)
+    if (dstUri) info('A saved Dst-URI(' + dstUri + ') was found in dstmap for an Call-ID(' + callId + ').')
+  }
+  if (!dstUri) {
+    if (!username || !isStickyByAor) dstUri = _selectDst()
+    else {
+      dstUri = getDstUriFromSticky(username)
+      if (!isNull(dstUri)) {
+        info('A saved Dst-URI(' + dstUri + ') was found in sticky for an AOR(' + username + ').')
+        setPv('du', dstUri)
+      } else {
+        info('No saved Dst-URI was found in sticky for an AOR(' + username + ').')
+        dstUri = _selectDst()
+        if (dstUri) setToSticky(username, dstUri, expire)
+      }
     }
   }
+  if (callId && dstUri) setToDstmap(callId, dstUri)
+  if (dstUri) info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
   return dstUri
 }
 const saveToRegister = function (contact) {
@@ -361,9 +392,15 @@ const routeRelay = function () {
   if (isMethodIn('ISU') && tIsSet('onreply_route') < 0) tOnReply('onRelayReply')
   if (isMethodIn('AB')) {
     if (!(dsIsFromLists() > 0) && KSR.hdr.is_present('Route') > 0) {
-      KSR.hdr.remove('Route')
-      KSR.tm.t_relay_to_proto_addr('udp', '10.1.10.4', 5061)
-      return false
+      const callId = getCallId()
+      if (callId) {
+        const dstUri = getFromDstmap(callId)
+        if (dstUri) {
+          KSR.hdr.remove('Route')
+          KSR.tm.t_relay_to_proto_addr('udp', '10.1.10.4', 5061)
+          return false
+        }
+      }
     }
   }
   if (tRelay() < 0) slReplyError()
