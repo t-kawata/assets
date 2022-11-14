@@ -433,25 +433,18 @@ const routeRelay = function () {
 const onRelayBranch = function () { routeNatManage() }
 const onRelayReply = function () {
   if (isStatusCodePositive()) {
-    if (KSR.is_INVITE()) {
-      info('=================================')
-      info('Is INVITE response!!')
-      info('=================================')
-      if (dsIsFromLists() > 0) {
-        info('=================================')
-        info('Is From dispatcher lists!!')
-        info('=================================')
-        const rr = getPv('hdr(Record-Route)')
-        if (rr) {
-          info('=================================')
-          info('Org Record-Route is: ' + rr)
-          info('=================================')
-          const rrr = rr.replace('10.1.10.140', '44.225.154.71')
-          info('=================================')
-          info('Replaced Record-Route is: ' + rrr)
-          info('=================================')
-          KSR.textops.remove_hf('Record-Route')
-          KSR.hdr.rmappend('Record-Route', "Record-Route: " + rrr + "\r\n")
+    if (KSR.is_INVITE() && dsIsFromLists() > 0) {
+      const rr = getHeader('Record-Route')
+      if (rr) {
+        const ex = rr.split(':')
+        const rrIpAddr = ex[1]
+        if (rrIpAddr) {
+          const translatedRrIpAddr = getFromIpmap(rrIpAddr)
+          if (translatedRrIpAddr) {
+            const rrr = rr.replace(rrIpAddr, translatedRrIpAddr)
+            KSR.textops.remove_hf('Record-Route')
+            KSR.hdr.rmappend('Record-Route', "Record-Route: " + rrr + "\r\n")
+          }
         }
       }
     }
@@ -521,10 +514,7 @@ const ksr_request_route = function () {
  */
 const ksr_reply_route = function () {
   const status = getStatusCode()
-  if (
-    KSR.is_INVITE() && !isStatusCodePositive(status) ||
-    isMethodIn('BC') && status === 200
-  ) {
+  if ((KSR.is_INVITE() && !isStatusCodePositive(status)) || (isMethodIn('BC') && status === 200)) {
     const callId = getCallId()
     if (!callId) return
     delFromDstmap(callId)
