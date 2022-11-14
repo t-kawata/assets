@@ -12,6 +12,7 @@ const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
 const DEFAULT_DSTMAP_EXPIRE = 3600 // 1h
 const STICKY_STATUS_KEY = 'STICKY_STATUS'
+const DS_TRY_NEXT_STATUS_KEY = 'DS_TRY_NEXT_STATUS'
 const USERNAME_FORMAT = /^s[0-9]{11}$/
 
 const JSDT_DEBUG = true
@@ -95,6 +96,10 @@ const getFromIpmap = function (key) {
 }
 const getStickyStatus = function () {
   const status = getFromHtable('settings', STICKY_STATUS_KEY)
+  return status ? Number(status) : 0
+}
+const getDsTryNextStatus = function () {
+  const status = getFromHtable('settings', DS_TRY_NEXT_STATUS_KEY)
   return status ? Number(status) : 0
 }
 const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
@@ -401,8 +406,9 @@ const routeDispatch = function () {
   const username = getUsernameFromContact(getPv('ct'))
   if (!username || !isValidUsername(username)) { reply404(); return false; }
   const isStickyByAor = getStickyStatus() > 0
+  const isDsTryNextOn = getDsTryNextStatus() > 0
   if (!selectDstUri(username, isStickyByAor)) return false
-  if (!isStickyByAor) tOnFailure('onDispatchFailure')
+  if (!isStickyByAor && isDsTryNextOn) tOnFailure('onDispatchFailure')
   return routeRelay()
 }
 const routeRelay = function () {
