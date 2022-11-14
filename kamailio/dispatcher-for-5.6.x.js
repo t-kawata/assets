@@ -102,7 +102,7 @@ const getDsTryNextStatus = function () {
   const status = getFromHtable('settings', DS_TRY_NEXT_STATUS_KEY)
   return status ? Number(status) : 0
 }
-const getStatusCode = function () { return KSR.kx.gets_status() }
+const getStatusCode = function () { return Number(KSR.kx.gets_status()) }
 const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
 const delFromSticky = function (key) {
   info('Delete a sticky record by key(' + key + ')')
