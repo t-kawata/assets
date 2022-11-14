@@ -129,6 +129,8 @@ const isRequest = function () { return KSR.siputils.is_request() }
 const isReply = function () { return KSR.siputils.is_reply() }
 const isMethodIn = function (methods) { return KSR.is_method_in(methods) }
 const isFirstHop = function () { return KSR.siputils.is_first_hop() }
+const isHeaderExist = function (hdrName) { return KSR.hdr.is_present(hdrName) }
+const isRouteHeaderExist = function () { return isHeaderExist('Route') }
 const checkRouteParam = function (str) { return KSR.rr.check_route_param(str) }
 const natUacTest = function (flg) { return KSR.nathelper.nat_uac_test(flg) }
 const fixNatedRegister = function () { return KSR.nathelper.fix_nated_register() }
@@ -272,6 +274,22 @@ const getDstUriFromSticky = function (username) {
   info('Try to search a saved Dst-URI in sticky for an AOR(' + username + ')')
   return getFromSticky(username)
 }
+const relayByDstmap = function () {
+  const callId = getCallId()
+  if (!callId) return true
+  const dstUri = getFromDstmap(callId)
+  if (!dstUri) return true
+  const ex = dstUri.split(':')
+  const ipaddr = ex[1]
+  const port  = ex[2]
+  KSR.hdr.remove('Route')
+  if (KSR.tm.t_relay_to_proto_addr('udp', ipaddr, Number(port)) < 0) slReplyError()
+  return false
+}
+const relayReqFromClientByDstmap = function () {
+  if (dsIsFromLists() > 0 || isRouteHeaderExist() <= 0) return true
+  return relayByDstmap()
+}
 
 /********************************
  * Branch Routes bgn
@@ -390,21 +408,8 @@ const routeDispatch = function () {
 const routeRelay = function () {
   if (isMethodIn('IBSU') && tIsSet('branch_route') < 0) tOnBranch('onRelayBranch')
   if (isMethodIn('ISU') && tIsSet('onreply_route') < 0) tOnReply('onRelayReply')
-  if (isMethodIn('AB')) {
-    if (!(dsIsFromLists() > 0) && KSR.hdr.is_present('Route') > 0) {
-      const callId = getCallId()
-      if (callId) {
-        const dstUri = getFromDstmap(callId)
-        if (dstUri) {
-          const ex = dstUri.split(':')
-          const ipaddr = ex[1]
-          const port  = ex[2]
-          KSR.hdr.remove('Route')
-          KSR.tm.t_relay_to_proto_addr('udp', ipaddr, Number(port))
-          return false
-        }
-      }
-    }
+  if (isMethodIn('ABC')) {
+    if (!relayReqFromClientByDstmap()) return false
   }
   if (tRelay() < 0) slReplyError()
   return false
