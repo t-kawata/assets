@@ -396,8 +396,11 @@ const routeRelay = function () {
       if (callId) {
         const dstUri = getFromDstmap(callId)
         if (dstUri) {
+          const ex = dstUri.split(':')
+          const ipaddr = ex[1]
+          const port  = ex[2]
           KSR.hdr.remove('Route')
-          KSR.tm.t_relay_to_proto_addr('udp', '10.1.10.4', 5061)
+          KSR.tm.t_relay_to_proto_addr('udp', ipaddr, Number(port))
           return false
         }
       }
