@@ -102,10 +102,15 @@ const getDsTryNextStatus = function () {
   const status = getFromHtable('settings', DS_TRY_NEXT_STATUS_KEY)
   return status ? Number(status) : 0
 }
+const getStatusCode = function () { return KSR.kx.gets_status() }
 const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, key) }
 const delFromSticky = function (key) {
   info('Delete a sticky record by key(' + key + ')')
   return delFromHtable('sticky', key)
+}
+const delFromDstmap = function (key) {
+  info('Delete a dstmap record by key(' + key + ')')
+  return delFromHtable('dstmap', key)
 }
 const sendUacReq = function (method, params, hdrs, body) {
   if (!method) return 0
@@ -171,6 +176,11 @@ const isUndefined = function (data) { return data === undefined }
 const isValidUsername = function (username) { return !!(USERNAME_FORMAT.exec(username)) }
 const isValidUsernameContact = function (contact) { return isValidUsername(getUsernameFromContact(contact)) }
 const isFullContactsNow = function (contactsCount) { return contactsCount >= MAX_CONTACTS }
+const isStatusCodePositive = function (statusCode) {
+  const status = statusCode || getStatusCode()
+  if (!status) return false
+  return status >= 100 && status <= 299
+}
 const execRPC = function (method, paramsArr) {
   const rtn = KSR.jsonrpcs.exec(JSON.stringify({ jsonrpc: '2.0', method, params: paramsArr }))
   if (rtn < 0) return null
@@ -422,8 +432,7 @@ const routeRelay = function () {
 }
 const onRelayBranch = function () { routeNatManage() }
 const onRelayReply = function () {
-  const status = KSR.kx.gets_status()
-  if (status > 100 && status <= 299) {
+  if (isStatusCodePositive()) {
     if (KSR.is_INVITE()) {
       info('=================================')
       info('Is INVITE response!!')
@@ -510,4 +519,14 @@ const ksr_request_route = function () {
 /**
  * Response Entry Point
  */
-const ksr_reply_route = function () {}
+const ksr_reply_route = function () {
+  const status = getStatusCode()
+  if (
+    KSR.is_INVITE() && !isStatusCodePositive(status) ||
+    isMethodIn('BC') && status === 200
+  ) {
+    const callId = getCallId()
+    if (!callId) return
+    delFromDstmap(callId)
+  }
+}
