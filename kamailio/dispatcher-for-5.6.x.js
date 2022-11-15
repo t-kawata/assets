@@ -306,15 +306,19 @@ const relayReqFromClientByDstmap = function () {
   return relayByDstmap()
 }
 const reWriteRrForSipNat = function () {
+  const rtn = { orgIp: '', newIp: '' }
   const rr = getHeader('Record-Route')
-  if (!rr) return
+  if (!rr) return rtn
   const rrIpAddr = rr.split(':')[1]
-  if (!rrIpAddr) return
+  if (!rrIpAddr) return rtn
+  rtn.orgIp = rrIpAddr
   const translatedRrIpAddr = getFromIpmap(rrIpAddr)
-  if (!translatedRrIpAddr) return
+  if (!translatedRrIpAddr) return rtn
+  rtn.newIp = translatedRrIpAddr
   const rrr = rr.replace(rrIpAddr, translatedRrIpAddr)
   KSR.textops.remove_hf('Record-Route')
   KSR.hdr.rmappend('Record-Route', "Record-Route: " + rrr + "\r\n")
+  return rtn
 }
 
 /********************************
@@ -444,7 +448,20 @@ const routeRelay = function () {
 const onRelayBranch = function () { routeNatManage() }
 const onRelayReply = function () {
   if (isStatusCodePositive()) {
-    if (KSR.is_INVITE() && dsIsFromLists() > 0) reWriteRrForSipNat()
+    if (KSR.is_INVITE() && dsIsFromLists() > 0) {
+      const ips = reWriteRrForSipNat()
+      if(KSR.hdr.match_content('Content-Type', 'eq', 'application/sdp', "f")) {
+        const sdp = KSR.kx.get_body()
+        info('===========================================')
+        info(sdp)
+        info('===========================================')
+        const newSdp = sdp.replace(new RegExp(ips.orgIp, 'g'), ips.newIp)
+        info('===========================================')
+        info(newSdp)
+        info('===========================================')
+      }
+      
+    }
     routeNatManage()
   }
 }
