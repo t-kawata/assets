@@ -345,9 +345,6 @@ const routeNatDetect = function () {
 const routeNatManage = function () {
   if (isRequest() > 0 && hasToTag() > 0 && checkRouteParam('nat=yes') > 0) setbFlag(FLB_NATB)
   if (!(isFlagSet(FLT_NATS) || isbFlagSet(FLB_NATB))) return
-  info('=================================')
-  info('Is detected behind NAT')
-  info('=================================')
   if (natUacTest(8) > 0) rtpengineManage('SIP-source-address replace-origin replace-session-connection')
   else rtpengineManage('replace-origin replace-session-connection')
   if (isRequest() > 0 && !hasToTag() && tIsBranchRoute() > 0) addRrParam(';nat=yes')
