@@ -305,6 +305,17 @@ const relayReqFromClientByDstmap = function () {
   if (dsIsFromLists() > 0 || isRouteHeaderExist() <= 0) return true
   return relayByDstmap()
 }
+const reWriteRrForSipNat = function () {
+  const rr = getHeader('Record-Route')
+  if (!rr) return
+  const rrIpAddr = rr.split(':')[1]
+  if (!rrIpAddr) return
+  const translatedRrIpAddr = getFromIpmap(rrIpAddr)
+  if (!translatedRrIpAddr) return
+  const rrr = rr.replace(rrIpAddr, translatedRrIpAddr)
+  KSR.textops.remove_hf('Record-Route')
+  KSR.hdr.rmappend('Record-Route', "Record-Route: " + rrr + "\r\n")
+}
 
 /********************************
  * Branch Routes bgn
@@ -433,21 +444,7 @@ const routeRelay = function () {
 const onRelayBranch = function () { routeNatManage() }
 const onRelayReply = function () {
   if (isStatusCodePositive()) {
-    if (KSR.is_INVITE() && dsIsFromLists() > 0) {
-      const rr = getHeader('Record-Route')
-      if (rr) {
-        const ex = rr.split(':')
-        const rrIpAddr = ex[1]
-        if (rrIpAddr) {
-          const translatedRrIpAddr = getFromIpmap(rrIpAddr)
-          if (translatedRrIpAddr) {
-            const rrr = rr.replace(rrIpAddr, translatedRrIpAddr)
-            KSR.textops.remove_hf('Record-Route')
-            KSR.hdr.rmappend('Record-Route', "Record-Route: " + rrr + "\r\n")
-          }
-        }
-      }
-    }
+    if (KSR.is_INVITE() && dsIsFromLists() > 0) reWriteRrForSipNat()
     routeNatManage()
   }
 }
