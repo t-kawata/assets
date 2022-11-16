@@ -476,6 +476,13 @@ const onContactExpired = function () {
   const contact = '<' + contactAddr + '>'
   info('A contact(' + contact + ') was expired.')
 }
+const onXhttpEvent = function () {
+  if (!KSR.is_dst_port(8080)) return
+  info('=============================================')
+  info('Got http requst!!')
+  info('URL: ' + getPv('hu'))
+  info('=============================================')
+}
 /********************************
  * Event Handlers end
  ********************************/
