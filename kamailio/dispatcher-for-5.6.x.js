@@ -79,8 +79,10 @@ const setUacReq = function (key, value) {
 }
 const getPv = function (key) { return KSR.pv.get('$' + key) }
 const getAvp = function (key) { return KSR.pvx.avp_get(key) }
+const getDef = function (key) { return KSR.kx.get_def(key) }
 const getHeader = function (hdrName) { return KSR.hdr.get(hdrName) }
 const getCallId = function () { return getHeader('Call-ID') }
+const getLocalIp = function () { return getDef('LOCAL_IP') }
 const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, key) }
 const getFromSticky = function (key) {
   info('Get a sticky record by key(' + key + ')')
@@ -481,6 +483,7 @@ const onXhttpEvent = function () {
   info('=============================================')
   info('Got http requst!!')
   info('URL: ' + getPv('hu'))
+  info('LOCAL_IP: ' + getLocalIp())
   info('=============================================')
 }
 /********************************
