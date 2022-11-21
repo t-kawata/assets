@@ -313,7 +313,7 @@ const saveRegmap = function (username, contact) {
   if (!json) info('No record in regmap with key(' + username + ')')
   const map = json ? JSON.parse(json) : {}
   if (!map[localIp]) map[localIp] = []
-  const lastContact = contact.replace(/<|>/g, '')
+  const lastContact = contact.replace(/<|>.*/g, '')
   if (map[localIp].indexOf(lastContact) === -1) map[localIp].push(lastContact)
   setToRegmap(username, JSON.stringify(map))
 }
@@ -325,11 +325,15 @@ const unsaveRegmap = function (username, contact) {
   if (!json) { info('No record in regmap with key(' + username + ')'); return; }
   const map = JSON.parse(json)
   if (!map[localIp]) { info('No regmap record was found for [' + username + '] in [' + localIp + ']'); return; }
-  const lastContact = contact.replace(/<|>/, '')
+  const lastContact = contact.replace(/<|>.*/g, '')
   const index = map[localIp].indexOf(lastContact)
+  info(JSON.stringify(map[localIp]))
+  info(lastContact)
+  info(index)
   if (index !== -1) map[localIp].splice(index, 1)
+  info(JSON.stringify(map))
   if (map[localIp].length === 0) delete map[localIp]
-  info(map)
+  info(JSON.stringify(map))
   if (Object.keys(map).length === 0) delFromRegmap(username)
   else setToRegmap(username, JSON.stringify(map))
 }
