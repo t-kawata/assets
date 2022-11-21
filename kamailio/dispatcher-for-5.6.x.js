@@ -324,11 +324,12 @@ const unsaveRegmap = function (username, contact) {
   const json = getFromRegmap(username)
   if (!json) { info('No record in regmap with key(' + username + ')'); return; }
   const map = JSON.parse(json)
-  if (!map[localIp]) return
+  if (!map[localIp]) { info('No regmap record was found for [' + username + '] in [' + localIp + ']'); return; }
   const lastContact = contact.replace(/<|>/, '')
   const index = map[localIp].indexOf(lastContact)
   if (index !== -1) map[localIp].splice(index, 1)
   if (map[localIp].length === 0) delete map[localIp]
+  info(map)
   if (Object.keys(map).length === 0) delFromRegmap(username)
   else setToRegmap(username, JSON.stringify(map))
 }
