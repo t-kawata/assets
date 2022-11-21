@@ -181,6 +181,7 @@ const dsNextDst = function () { return KSR.dispatcher.ds_next_dst() }
 const dsIsFromLists = function () { return KSR.dispatcher.ds_is_from_lists() }
 const tRelay = function () { return KSR.tm.t_relay() }
 const slReplyError = function () { return KSR.sl.sl_reply_error() }
+const xhttpReply = function (code, reason, contentType, body) { return KSR.xhttp.xhttp_reply(code, reason, contentType, body) }
 const tOnFailure = function (failureMethodName) { return KSR.tm.t_on_failure(failureMethodName) }
 const tOnBranch = function (branchMethodName) { return KSR.tm.t_on_branch(branchMethodName) }
 const tOnReply = function (replyMethodName) { return KSR.tm.t_on_reply(replyMethodName) }
@@ -533,11 +534,25 @@ const onContactExpired = function () {
 }
 const onXhttpEvent = function () {
   if (!KSR.is_dst_port(8080)) return
-  info('=============================================')
-  info('Got http requst!!')
-  info('URL: ' + getPv('hu'))
-  info('LOCAL_IP: ' + getLocalIp())
-  info('=============================================')
+  const hu = getPv('hu')
+  if (!hu) return
+  const params = hu.split('/')
+  if (!params[1]) return
+  var done = false
+  switch (params[1]) {
+    case 'contacts': onXhttpContacts(params, done); break;
+    default: break;
+  }
+  if (!done) xhttpReply(404, 'Not Found')
+}
+const onXhttpContacts = function (params, done) {
+  const username = params[2]
+  if (!username) return
+  const json = getFromRegmap(username)
+  var body = json
+  if (!json) body = '{}'
+  done = true
+  xhttpReply(200, 'OK', 'application/json; charset=utf-8', body)
 }
 /********************************
  * Event Handlers end
