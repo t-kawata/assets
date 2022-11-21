@@ -7,9 +7,10 @@ const FLT_ACCFAILED = 3
 const FLT_NATS = 5
 const FLB_NATB = 6
 const FLB_NATSIPPING = 7
-const MAX_CONTACTS = 5
+const MAX_CONTACTS = 4
 const AUTH_COMMON_DOMAIN = 'shyme'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
+const DEFAULT_REGMAP_EXPIRE = 3600 // 1h
 const DEFAULT_DSTMAP_EXPIRE = 3600 // 1h
 const STICKY_STATUS_KEY = 'STICKY_STATUS'
 const DS_TRY_NEXT_STATUS_KEY = 'DS_TRY_NEXT_STATUS'
@@ -68,6 +69,12 @@ const setToSticky = function (key, value, expire) {
   info('Set a sticky record(' + key + ': ' + value + '; expire=' + expireSeconds + ')')
   return setToHtable('sticky', key, value, expireSeconds)
 }
+const setToRegmap = function (key, value, expire) {
+  const expireNum = Number(expire)
+  const expireSeconds = expireNum > 0 ? expireNum : DEFAULT_REGMAP_EXPIRE
+  info('Set a regmap record(' + key + ': ' + value + '; expire=' + expireSeconds + ')')
+  return setToHtable('regmap', key, value, expireSeconds)
+}
 const setToDstmap = function (key, value, expire) {
   const expireNum = Number(expire)
   const expireSeconds = expireNum > 0 ? expireNum : DEFAULT_DSTMAP_EXPIRE
@@ -87,6 +94,10 @@ const getFromHtable = function (table, key) { return KSR.htable.sht_get(table, k
 const getFromSticky = function (key) {
   info('Get a sticky record by key(' + key + ')')
   return getFromHtable('sticky', key)
+}
+const getFromRegmap = function (key) {
+  info('Get a regmap record by key(' + key + ')')
+  return getFromHtable('regmap', key)
 }
 const getFromDstmap = function (key) {
   info('Get a dstmap record by key(' + key + ')')
@@ -109,6 +120,10 @@ const delFromHtable = function (table, key) { return KSR.htable.sht_rm(table, ke
 const delFromSticky = function (key) {
   info('Delete a sticky record by key(' + key + ')')
   return delFromHtable('sticky', key)
+}
+const delFromRegmap = function (key) {
+  info('Delete a regmap record by key(' + key + ')')
+  return delFromHtable('regmap', key)
 }
 const delFromDstmap = function (key) {
   info('Delete a dstmap record by key(' + key + ')')
@@ -236,16 +251,17 @@ const getRemovingTargetContact = function (username, contacts) {
 }
 const removeNotFreshOneContactWhenOverMaxContact = function (contact) {
   const username = getUsernameFromContact(contact)
-  if (!username) { info('Failed to get username from contact.'); return false; }
+  if (!username) { info('Failed to get username from contact.'); return ''; }
   const contacts = getContactsByAor(username)
   const addressOfRemovingTargetContact = getRemovingTargetContact(username, contacts).Address
-  if (isUndefined(addressOfRemovingTargetContact)) return
+  if (isUndefined(addressOfRemovingTargetContact)) return username
   info('Try to delete contact(' + addressOfRemovingTargetContact + ')')
   if (unregister('location', addressOfRemovingTargetContact) > 0) {
     info('Succeeded to unregister a contact(' + addressOfRemovingTargetContact + ')')
   } else {
     info('Failed to unregister a contact(' + addressOfRemovingTargetContact + ')')
   }
+  return username
 }
 const _selectDst = function () {
   info('Select a Dst-URI with auto-select-system of dispatcher.')
@@ -277,15 +293,44 @@ const selectDstUri = function (username, isStickyByAor, expire) {
   if (dstUri) info('Use [' + dstUri + '] as Dst-URI to dispatch now.')
   return dstUri
 }
-const saveToRegister = function (contact) {
+const saveToRegister = function (username, contact) {
+  saveRegmap(username, contact)
   info('Try to register a contact: ' + contact)
   if (saveWithReply('location') < 0) slReplyError()
   info('Registered a contact: ' + contact)
 }
-const saveToUnRegister = function (contact) {
+const saveToUnRegister = function (username, contact) {
+  unsaveRegmap(username, contact)
   info('Try to unregister a contact: ' + contact)
   if (saveWithReply('location') < 0) slReplyError()
   info('Unregistered a contact: ' + contact)
+}
+const saveRegmap = function (username, contact) {
+  if (!username || !contact) return
+  const localIp = getLocalIp()
+  if (!localIp) { info('Failed to get local ip addr.'); return; }
+  const json = getFromRegmap(username)
+  if (!json) info('No record in regmap with key(' + username + ')')
+  const map = json ? JSON.parse(json) : {}
+  if (!map[localIp]) map[localIp] = []
+  const lastContact = contact.replace(/<|>/g, '')
+  if (map[localIp].indexOf(lastContact) === -1) map[localIp].push(lastContact)
+  setToRegmap(username, JSON.stringify(map))
+}
+const unsaveRegmap = function (username, contact) {
+  if (!username || !contact) return
+  const localIp = getLocalIp()
+  if (!localIp) { info('Failed to get local ip addr.'); return; }
+  const json = getFromRegmap(username)
+  if (!json) { info('No record in regmap with key(' + username + ')'); return; }
+  const map = JSON.parse(json)
+  if (!map[localIp]) return
+  const lastContact = contact.replace(/<|>/, '')
+  const index = map[localIp].indexOf(lastContact)
+  if (index !== -1) map[localIp].splice(index, 1)
+  if (map[localIp].length === 0) delete map[localIp]
+  if (Object.keys(map).length === 0) delFromRegmap(username)
+  else setToRegmap(username, JSON.stringify(map))
 }
 const getDstUriFromSticky = function (username) {
   info('Try to search a saved Dst-URI in sticky for an AOR(' + username + ')')
@@ -416,13 +461,14 @@ const routeRegisterEntry = function () {
 }
 const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
-  removeNotFreshOneContactWhenOverMaxContact(contact)
-  saveToRegister(contact)
+  const username = removeNotFreshOneContactWhenOverMaxContact(contact)
+  saveToRegister(username, contact)
   return false
 }
 const routeUnregister = function (contact) {
   info('Got Un-REGISTER req with contact(' + contact + ')')
-  saveToUnRegister(contact)
+  const username = getUsernameFromContact(contact)
+  saveToUnRegister(username, contact)
   return false
 }
 const routeDispatch = function () {
@@ -477,6 +523,8 @@ const onContactExpired = function () {
   const contactAddr = getPv('ulc(exp=>addr)')
   const contact = '<' + contactAddr + '>'
   info('A contact(' + contact + ') was expired.')
+  const username = getUsernameFromContact(contact)
+  unsaveRegmap(username, contact)
 }
 const onXhttpEvent = function () {
   if (!KSR.is_dst_port(8080)) return
