@@ -143,7 +143,8 @@ const sendUacReq = function (method, params, hdrs, body) {
 }
 const slSendReply = function (code, reason) { return KSR.sl.sl_send_reply(code, reason) }
 const sendReply = function (code, reason) { return KSR.sl.send_reply(code, reason) }
-const reply404 = function () { return slSendReply(404, 'Not found') }
+const reply404 = function () { return slSendReply(404, 'Not Found') }
+const replyXhttp404 = function () { return xhttpReply(404, 'Not Found', 'application/json; charset=utf-8', '') }
 const tCheckTrans = function () { return KSR.tm.t_check_trans() }
 const tPreCheckTrans = function () { return KSR.tmx.t_precheck_trans() }
 const hasToTag = function () { return KSR.siputils.has_totag() }
@@ -538,20 +539,17 @@ const onXhttpEvent = function () {
   if (!hu) return
   const params = hu.split('/')
   if (!params[1]) return
-  var done = false
   switch (params[1]) {
-    case 'contacts': onXhttpContacts(params, done); break;
-    default: break;
+    case 'contacts': onXhttpContacts(params); break;
+    default: replyXhttp404(); break;
   }
-  if (!done) xhttpReply(404, 'Not Found')
 }
-const onXhttpContacts = function (params, done) {
+const onXhttpContacts = function (params) {
   const username = params[2]
-  if (!username) return
+  if (!username) { replyXhttp404(); return; }
   const json = getFromRegmap(username)
   var body = json
   if (!json) body = '{}'
-  done = true
   xhttpReply(200, 'OK', 'application/json; charset=utf-8', body)
 }
 /********************************
