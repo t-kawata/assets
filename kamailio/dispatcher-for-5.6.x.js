@@ -480,11 +480,31 @@ const routeUnregister = function (contact) {
 }
 const routeDispatch = function () {
   const username = getUsernameFromContact(getPv('ct'))
-  if (!username || !isValidUsername(username)) { reply404(); return false; }
+  if (!username || !isValidUsername(username)) {
+    if (KSR.is_INVITE() && dsIsFromLists() > 0) { return routeRelayToClient() }
+    reply404();
+    return false;
+  }
   const isStickyByAor = getStickyStatus() > 0
   const isDsTryNextOn = getDsTryNextStatus() > 0
   if (!selectDstUri(username, isStickyByAor)) return false
   if (!isStickyByAor && isDsTryNextOn) tOnFailure('onDispatchFailure')
+  return routeRelay()
+}
+const routeRelayToClient = function () {
+  const localIp = getLocalIp()
+  const proxyIp = getHeader('X-PROXY_IP')
+  if (localIp !== proxyIp) { reply404(); return; }
+  const varsId = getHeader('X-VARS_ID')
+  const nodeLocalIp = getHeader('X-LOCAL_IP')
+  const callerName = getHeader('X-CALLER_NAME')
+  const caleeName = getHeader('X-CALLEE_NAME')
+  const number = getHeader('X-NUMBER')
+  const contact = getHeader('X-CONTACT')
+  const timeout = getHeader('X-TIMEOUT')
+  info('Got a request from ' + localIp)
+  info(JSON.stringify({varsId, proxyIp, localIp: nodeLocalIp, callerName, caleeName, number, contact, timeout}))
+  setPv('du', contact)
   return routeRelay()
 }
 const routeRelay = function () {
