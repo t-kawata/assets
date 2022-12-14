@@ -8,7 +8,7 @@ const FLT_NATS = 5
 const FLB_NATB = 6
 const FLB_NATSIPPING = 7
 const MAX_CONTACTS = 4
-const AUTH_COMMON_DOMAIN = 'shyme'
+const AUTH_COMMON_DOMAIN = 'proxy'
 const DEFAULT_STICKY_EXPIRE = 86400 // 24h
 const DEFAULT_REGMAP_EXPIRE = 3600 // 1h
 const DEFAULT_DSTMAP_EXPIRE = 3600 // 1h
@@ -329,13 +329,8 @@ const unsaveRegmap = function (username, contact) {
   if (!map[localIp]) { info('No regmap record was found for [' + username + '] in [' + localIp + ']'); return; }
   const lastContact = contact.replace(/<|>.*/g, '')
   const index = map[localIp].indexOf(lastContact)
-  info(JSON.stringify(map[localIp]))
-  info(lastContact)
-  info(index)
   if (index !== -1) map[localIp].splice(index, 1)
-  info(JSON.stringify(map))
   if (map[localIp].length === 0) delete map[localIp]
-  info(JSON.stringify(map))
   if (Object.keys(map).length === 0) delFromRegmap(username)
   else setToRegmap(username, JSON.stringify(map))
 }
@@ -462,9 +457,10 @@ const routePresence = function () {
 const routeRegisterEntry = function () {
   if (!KSR.is_REGISTER()) return true
   if (isFlagSet(FLT_NATS)) { setbFlag(FLB_NATB); setbFlag(FLB_NATSIPPING); }
+  const expires = getHeader('Expires')
   const contact = getPv('ct')
-  if (!contact.match(/expires=0/)) return routeRegister(contact)
-  else return routeUnregister(contact)
+  if (Number(expires) === 0 || contact.match(/expires=0/)) return routeUnregister(contact)
+  else return routeRegister(contact)
 }
 const routeRegister = function (contact) {
   info('Got REGISTER req with contact(' + contact + ')')
