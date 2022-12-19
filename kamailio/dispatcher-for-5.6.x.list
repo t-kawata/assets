@@ -1,8 +1,0 @@
-#
-# Line Format
-# setid(int) destination(sip uri) flags(int,opt) priority(int,opt) attributes(str,opt)
-#
-
-# Nodes
-1 sip:10.1.10.4:5061 0 0
-1 sip:10.1.10.123:5061 0 0
