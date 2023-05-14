@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# Disable xrandr to avoid resolution errors
-xrandr -s 1024x768 -r 60
-
-# Start the desktop manager
-/usr/bin/gnome-session &
