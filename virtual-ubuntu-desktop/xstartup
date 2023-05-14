@@ -4,4 +4,4 @@
 xrandr -s 1024x768 -r 60
 
 # Start the desktop manager
-exec /usr/bin/startxfce4
+/usr/bin/gnome-session &
