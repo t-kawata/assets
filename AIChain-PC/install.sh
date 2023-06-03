@@ -46,6 +46,20 @@ sudo sh ${TARGET}/boot/Porteus-installer-for-Linux.com
 echo "---"
 echo "Completed all instaling proceses !!"
 echo "---"
+
+sleep 1
+
+echo "---"
+echo "Start settings to protect boot device ..."
+echo "---"
+
+sleep 2
+
+chmod -R a-w ${TARGET}
+
+sleep 1
+
+echo "---"
 echo "Start unmounting ..."
 echo "---"
 
