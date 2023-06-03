@@ -2,7 +2,8 @@
 LOOP="/mnt/loop"
 ISO=$(ls -l | grep "\.iso$" | awk '{print $9}')
 CDIR=$(pwd)
-TARGET=${CDIR%?}2
+# TARGET=${CDIR%?}2
+TARGET=${CDIR}
 
 mloop ${ISO}
 
@@ -14,9 +15,13 @@ echo "---"
 
 sleep 2
 
-sudo cp -r ${LOOP}/EFI ${TARGET}/
-sudo cp -r ${LOOP}/boot ${TARGET}/
-sudo cp -r ${LOOP}/porteus ${TARGET}/
+# sudo cp -r ${LOOP}/EFI ${TARGET}/
+# sudo cp -r ${LOOP}/boot ${TARGET}/
+# sudo cp -r ${LOOP}/porteus ${TARGET}/
+
+sudo rsync -av --progress ${LOOP}/EFI ${TARGET}/
+sudo rsync -av --progress ${LOOP}/boot ${TARGET}/
+sudo rsync -av --progress ${LOOP}/porteus ${TARGET}/
 
 sleep 1
 
