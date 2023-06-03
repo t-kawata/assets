@@ -1,4 +1,15 @@
 #!/bin/bash
+
+spinner() {
+    local i sp n
+    sp='/-\|'
+    n=${#sp}
+    printf ' '
+    while sleep 0.1; do
+        printf "%s\b" "${sp:i++%n:1}"
+    done
+}
+
 LOOP="/mnt/loop"
 ISO=$(ls -l | grep "\.iso$" | awk '{print $9}')
 CDIR=$(pwd)
@@ -10,18 +21,18 @@ mloop ${ISO}
 sleep 3
 
 echo "---"
-echo "Start install os files to ${TARGET} ..."
+echo "Start install OS files to ${TARGET} ..."
 echo "---"
+
+spinner &
 
 sleep 2
 
-# sudo cp -r ${LOOP}/EFI ${TARGET}/
-# sudo cp -r ${LOOP}/boot ${TARGET}/
-# sudo cp -r ${LOOP}/porteus ${TARGET}/
+cp -r ${LOOP}/EFI ${TARGET}/
+cp -r ${LOOP}/boot ${TARGET}/
+cp -r ${LOOP}/porteus ${TARGET}/
 
-sudo rsync -av --progress ${LOOP}/EFI ${TARGET}/
-sudo rsync -av --progress ${LOOP}/boot ${TARGET}/
-sudo rsync -av --progress ${LOOP}/porteus ${TARGET}/
+kill "$!"
 
 sleep 1
 
@@ -49,15 +60,15 @@ echo "---"
 
 sleep 1
 
-echo "---"
-echo "Start settings to protect boot device ..."
-echo "---"
+# echo "---"
+# echo "Start settings to protect boot device ..."
+# echo "---"
 
-sleep 2
+# sleep 2
 
-chmod -R a-w ${TARGET}
+# chmod -R a-w ${TARGET}
 
-sleep 1
+# sleep 1
 
 echo "---"
 echo "Start unmounting ..."
