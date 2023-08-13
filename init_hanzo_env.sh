@@ -211,7 +211,7 @@ EOF
 cat <<EOF > /root/sh/restart_hanzo.sh
 #!/bin/bash
 LINE="------------------------------------------------"
-SLACK_URL="https://hooks.slack.com/services/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"
+SLACK_URL="https://hooks.slack.com/services/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"
 CHK_LIMIT=5
 ZERO=0
 ARG="\$1"
