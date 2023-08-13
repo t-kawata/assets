@@ -255,7 +255,7 @@ if [ \${ACTIVE_CHANNELS_CNT} = 0 -o "\${ARG}" = "\${HARD}" ]; then
   fi
   while [ \${CHK_GO} ]
   do
-    CHK_CNT=\$CHK_CNT+1
+    CHK_CNT=\$((\$CHK_CNT+1))
     sleep 1
     CHK_NUM=\`netstat -anp | grep LISTEN | grep 4573 | grep java | wc -l\`
     if [ \${CHK_NUM} -gt \${ZERO} ]; then
