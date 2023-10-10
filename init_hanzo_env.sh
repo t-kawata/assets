@@ -222,7 +222,7 @@ echo \${LINE}
 TEXT=\$TEXT"\\n"\${LINE}
 OLD_PID_STR=\`netstat -anp | grep LISTEN | grep asterisk | grep :8088 | awk '{print \$7}'\`
 if [ "\${OLD_PID_STR}" != "" ]; then
-  ACTIVE_CHANNELS_CNT=\`/usr/bin/asterisk -rx "core show channels" | grep "active channel" | awk '{print \$1}'\`
+  ACTIVE_CHANNELS_CNT=\`/usr/local/asterisk/sbin/asterisk -rx "core show channels" | grep "active channel" | awk '{print \$1}'\`
 else
   ACTIVE_CHANNELS_CNT=0
 fi
