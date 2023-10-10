@@ -12,7 +12,7 @@ echo \${LINE}
 TEXT=\$TEXT"\\n"\${LINE}
 OLD_PID_STR=\`netstat -anp | grep LISTEN | grep asterisk | grep :8088 | awk '{print \$7}'\`
 if [ "\${OLD_PID_STR}" != "" ]; then
-  ACTIVE_CHANNELS_CNT=\`/usr/bin/asterisk -rx "core show channels" | grep "active channel" | awk '{print \$1}'\`
+  ACTIVE_CHANNELS_CNT=\`/usr/local/asterisk/sbin/asterisk -rx "core show channels" | grep "active channel" | awk '{print \$1}'\`
 else
   ACTIVE_CHANNELS_CNT=0
 fi
@@ -40,7 +40,7 @@ if [ \${ACTIVE_CHANNELS_CNT} = 0 -o "\${ARG1}" = "\${HARD}" ]; then
   TEXT=\$TEXT"\\n""Starting Asterisk..."
   systemctl start asterisk
   sleep 3
-  /usr/bin/asterisk -rx "logger reload"
+  /usr/local/asterisk/sbin/asterisk -rx "logger reload"
   NEW_PID_STR=\`netstat -anp | grep LISTEN | grep asterisk | grep :8088 | awk '{print \$7}'\`
   echo "NEW_PID/asterisk = \${NEW_PID_STR}"
   echo "...done!"
@@ -68,7 +68,7 @@ if [ "\$1" != "" ]; then
   while true;
   do
     echo \${LINE}
-    /usr/bin/asterisk -rx "core show channels" | grep active;
+    /usr/local/asterisk/sbin/asterisk -rx "core show channels" | grep active;
     echo \${LINE}
     sleep \$1s;
   done
@@ -82,7 +82,7 @@ ln -s /root/sh/channels.sh /usr/bin/channels
 
 cat <<EOF > /root/sh/channel.sh
 #!/bin/sh
-/usr/bin/asterisk -rx "core show channels" | grep active;
+/usr/local/asterisk/sbin/asterisk -rx "core show channels" | grep active;
 exit 0
 EOF
 chmod 500 /root/sh/channel.sh
@@ -90,7 +90,7 @@ ln -s /root/sh/channel.sh /usr/bin/channel
 
 cat <<EOF > /root/sh/active_call.sh
 #!/bin/bash
-/usr/bin/asterisk -rx "core show channels" | grep "active call" | awk '{print \$1}'
+/usr/local/asterisk/sbin/asterisk -rx "core show channels" | grep "active call" | awk '{print \$1}'
 exit 0
 EOF
 
@@ -100,7 +100,7 @@ ln -s /root/sh/active_call.sh /usr/bin/active_call
 
 cat <<EOF > /root/sh/active_channel.sh
 #!/bin/bash
-/usr/bin/asterisk -rx "core show channels" | grep "active channel" | awk '{print \$1}'
+/usr/local/asterisk/sbin/asterisk -rx "core show channels" | grep "active channel" | awk '{print \$1}'
 exit 0
 EOF
 
