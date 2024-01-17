@@ -1,0 +1,12 @@
+[
+    { "id": "1", "name": "山田太郎", "number": "101", "user": true, "on": false, "disables": {} },
+    { "id": "2", "name": "鈴木一郎", "number": "102", "user": true, "on": true, "disables": {} },
+    { "id": "3", "name": "佐々木花子", "number": "08011112222", "user": false , "disables": {}},
+    { "id": "4", "name": "木村武司", "number": "09012349876", "user": false , "disables": {}},
+    { "id": "5", "name": "Yoshiro Nakamura", "number": "104", "on": true, "user": true , "disables": {}},
+    { "id": "6", "name": "山田太郎 02", "number": "105", "user": true, "on": false, "disables": {} },
+    { "id": "7", "name": "鈴木一郎 02", "number": "106", "user": true, "on": true, "disables": {} },
+    { "id": "8", "name": "佐々木花子 02", "number": "08011112222", "user": false , "disables": {}},
+    { "id": "9", "name": "木村武司 02", "number": "09012349876", "user": false , "disables": {}},
+    { "id": "10", "name": "Yoshiro Nakamura 02", "number": "107", "on": true, "user": true , "disables": {}}
+]

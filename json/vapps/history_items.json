@@ -1,0 +1,12 @@
+[
+    { "id": "1", "fromName": "発信01", "in": false, "answer": true },
+    { "id": "2", "fromName": "発信02", "in": false, "answer": false },
+    { "id": "3", "fromName": "着信01", "in": true, "answer": false },
+    { "id": "4", "fromName": "発信03", "in": false, "answer": true },
+    { "id": "5", "fromName": "着信02", "in": true, "answer": false },
+    { "id": "6", "fromName": "発信01-2", "in": false, "answer": true },
+    { "id": "7", "fromName": "発信02-2", "in": false, "answer": false },
+    { "id": "8", "fromName": "着信01-2", "in": true, "answer": false },
+    { "id": "9", "fromName": "発信03-2", "in": false, "answer": true },
+    { "id": "10", "fromName": "着信02-2", "in": true, "answer": false }
+]
