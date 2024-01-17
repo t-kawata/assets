@@ -1,0 +1,5 @@
+[
+    { "id": "11", "name": "ヤマダタロウ", "number": "201", "user": true, "on": false, "disables": {} },
+    { "id": "12", "name": "スズキイチロウ", "number": "202", "user": true, "on": true, "disables": {} },
+    { "id": "13", "name": "ササキハナコ", "number": "07011112222", "user": false , "disables": {}}
+]

@@ -1,0 +1,5 @@
+[
+    { "id": "11", "fromName": "発信-push-01", "in": false, "answer": true },
+    { "id": "12", "fromName": "発信-push-02", "in": false, "answer": false },
+    { "id": "13", "fromName": "着信-push-01", "in": true, "answer": false }
+]
