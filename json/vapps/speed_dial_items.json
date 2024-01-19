@@ -1,1 +1,6 @@
-[]
+[
+    { "id": "1", "name": "山田太郎", "number": "101", "user": true, "on": false, "disables": {} },
+    { "id": "2", "name": "鈴木一郎", "number": "102", "user": true, "on": true, "disables": {} },
+    { "id": "3", "name": "佐々木花子", "number": "08011112222", "user": false , "disables": {}},
+    { "id": "4", "name": "木村武司", "number": "09012349876", "user": false , "disables": {}}
+]
