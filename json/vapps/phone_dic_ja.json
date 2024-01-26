@@ -1,3 +1,16 @@
 {
-    "sample": "サンプル"
+    "sample": "さんぷる",
+    "phone": {
+        "pannel": {
+            "phone": {
+                "save_in_book": "番号を登録する"
+            },
+            "settings": {
+                "turn_japanese_on": {
+                    "title": "日本語を ON にする",
+                    "description": "OFF の場合は英語になります。"
+                }
+            }
+        }
+    }
 }

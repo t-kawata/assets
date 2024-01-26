@@ -1,3 +1,16 @@
 {
-    "sample": "SAMPLE"
+    "sample": "sample",
+    "phone": {
+        "pannel": {
+            "phone": {
+                "save_in_book": "Save in Book"
+            },
+            "settings": {
+                "turn_japanese_on": {
+                    "title": "Turn Japanese on",
+                    "description": "OFF means to use English."
+                }
+            }
+        }
+    }
 }
