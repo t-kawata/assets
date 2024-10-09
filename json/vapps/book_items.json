@@ -1,12 +1,16 @@
 [
-    { "id": "1", "name": "山田太郎", "number": "101", "user": true, "on": false, "disables": {} },
-    { "id": "2", "name": "鈴木一郎", "number": "102", "user": true, "on": true, "disables": {} },
-    { "id": "3", "name": "佐々木花子", "number": "08011112222", "user": false , "disables": {}},
-    { "id": "4", "name": "木村武司", "number": "09012349876", "user": false , "disables": {}},
-    { "id": "5", "name": "Yoshiro Nakamura", "number": "103", "on": true, "user": true , "disables": {}},
-    { "id": "6", "name": "山田太郎 02", "number": "201", "user": true, "on": false, "disables": {} },
-    { "id": "7", "name": "鈴木一郎 02", "number": "202", "user": true, "on": true, "disables": {} },
-    { "id": "8", "name": "佐々木花子 02", "number": "08011112222", "user": false , "disables": {}},
-    { "id": "9", "name": "木村武司 02", "number": "09012349876", "user": false , "disables": {}},
-    { "id": "10", "name": "Yoshiro Nakamura 02", "number": "203", "on": true, "user": true , "disables": {}}
+    { "id": "5-3-0", "name": "山田太郎", "number": "00000000002", "on": true, "disables": {} },
+    { "id": "5-4-0", "name": "鈴木一郎", "number": "00000000003", "on": true, "disables": {} },
+    { "id": "5-5-0", "name": "佐々木花子", "number": "00000000004", "on": true, "disables": {} },
+    { "id": "1-0-0", "name": "川田敏巳01", "number": "08045666014", "disables": {} },
+    { "id": "1-0-0", "name": "川田敏巳02", "number": "09025672570", "disables": {} },
+    { "id": "2-1-0", "name": "Workspace01", "number": "00000000001", "disables": {} },
+    { "id": "3-1-0", "name": "Room01", "number": "00000000001", "disables": {} },
+    { "id": "4-1-1", "name": "Room01 in Workspace01", "number": "881", "disables": {} },
+    { "id": "6-3-1", "name": "山田太郎 in Workspace01", "number": "101", "on": true, "disables": {}},
+    { "id": "6-4-1", "name": "鈴木一郎 in Workspace01", "number": "102", "on": true, "disables": {}},
+    { "id": "6-5-1", "name": "佐々木花子 in Workspace01", "number": "103", "on": true, "disables": {}},
+    { "id": "7-3-1", "name": "山田太郎 in Room01", "number": "991", "on": true, "disables": {}},
+    { "id": "7-4-1", "name": "鈴木一郎 in Room01", "number": "992", "on": true, "disables": {}},
+    { "id": "7-5-1", "name": "佐々木花子 in Room01", "number": "993", "on": true, "disables": {}}
 ]
