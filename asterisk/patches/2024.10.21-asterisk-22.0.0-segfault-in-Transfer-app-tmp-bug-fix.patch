@@ -1,0 +1,14 @@
+--- ./third-party/pjproject/source/pjsip/src/pjsip/sip_uri_bak.c	2024-10-21 15:33:17.938894591 +0900
++++ ./third-party/pjproject/source/pjsip/src/pjsip/sip_uri.c	2024-10-21 15:33:34.618926900 +0900
+@@ -32,6 +32,11 @@
+ PJ_DEF(pjsip_param*) pjsip_param_find(  const pjsip_param *param_list,
+                                         const pj_str_t *name )
+ {
++    /* 2024.10.21 Toshimi Kawata tmp bug fix for segfault in Transfer(): Asterisk 22.0.0  */
++    if (!param_list || (uintptr_t)param_list->next < (uintptr_t)0x1000) {
++        return NULL;
++    }
++
+     pjsip_param *p = (pjsip_param*)param_list->next;
+     while (p != param_list) {
+         if (pj_stricmp(&p->name, name)==0)
